@@ -23,7 +23,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # wandb logging
 wandb_log = True 
 wandb_project = 'nanogpt'
-wandb_run_name = 'nanogpt_default'
+wandb_run_name = 'nanogpt_scion_default'
 
 # -----------------------------------------------------------------------------
 # Scion optimizer
@@ -455,7 +455,7 @@ config_keys = [k for k, v in vars(args).items() if not k.startswith('_') and isi
 configuration = {k: vars(args)[k] for k in config_keys}
 if wandb_log and master_process:
     import wandb
-    wandb.init(project=wandb_project, name=wandb_run_name, config=configuration)
+    run = wandb.init(project=wandb_project, name=wandb_run_name, config=configuration)
 
 # begin logging
 if master_process:

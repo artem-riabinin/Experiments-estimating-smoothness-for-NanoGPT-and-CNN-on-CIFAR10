@@ -25,7 +25,7 @@ from torch.optim import AdamW
 # wandb logging
 wandb_log = True 
 wandb_project = 'nanogpt'
-wandb_run_name = 'nanogpt_default'
+wandb_run_name = 'nanogpt_muon_default'
 
 # -----------------------------------------------------------------------------
 # Scion optimizer
@@ -355,7 +355,7 @@ class Hyperparameters:
     batch_size : int = 8*64 # batch size, in sequences, across all devices
     device_batch_size : int = 64 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
-    num_iterations : int = 5100 # number of iterations to run
+    num_iterations : int = 100 # number of iterations to run
     learning_rate : float = 0.00036
     warmup_iters : int = 0
     warmdown_iters : int = 1450 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
@@ -452,7 +452,7 @@ config_keys = [k for k, v in vars(args).items() if not k.startswith('_') and isi
 configuration = {k: vars(args)[k] for k in config_keys}
 if wandb_log and master_process:
     import wandb
-    wandb.init(project=wandb_project, name=wandb_run_name, config=configuration)
+    run = wandb.init(project=wandb_project, name=wandb_run_name, config=configuration)
 
 # begin logging
 if master_process:

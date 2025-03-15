@@ -359,7 +359,7 @@ class Hyperparameters:
     warmdown_iters : int = 1450 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0
     # evaluation and logging hyperparams
-    val_loss_every : int = 100 # every how many steps to evaluate val loss? 0 for only at the end
+    val_loss_every : int = 10 # every how many steps to evaluate val loss? 0 for only at the end
     val_tokens : int = 10485760 # how many tokens of validation data? it's important to keep this fixed for consistent comparisons
     save_every : int = 0 # every how many steps to save the checkpoint? 0 for only at the end
     n_layer : int = 12
@@ -562,6 +562,10 @@ for step in range(args.num_iterations + 1):
     # everything that follows now is just diagnostics, prints, logging, etc.
 
     #dist.all_reduce(train_loss, op=dist.ReduceOp.AVG) # all-reducing the training loss would be more correct in terms of logging, but slower
+
+    print('step', step)
+    if (last_step or (args.save_every > 0 and step % args.save_every == 0)):
+        print('222')
 
     # wandb logging
     if master_process and (last_step or (args.save_every > 0 and step % args.save_every == 0)):

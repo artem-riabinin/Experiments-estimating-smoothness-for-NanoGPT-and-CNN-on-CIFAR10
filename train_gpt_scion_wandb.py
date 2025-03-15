@@ -18,6 +18,13 @@ import torch.distributed as dist
 import torch._inductor.config as config
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+#-----------------------------------------------------------------------------
+
+# wandb logging
+wandb_log = True 
+wandb_project = 'nanogpt'
+wandb_run_name = 'nanogpt'
+
 # -----------------------------------------------------------------------------
 # Scion optimizer
 
@@ -443,6 +450,11 @@ def get_lr(it):
         return decay_ratio
 schedulers = [torch.optim.lr_scheduler.LambdaLR(opt, get_lr) for opt in optimizers]
 
+# logging
+if wandb_log and master_process:
+    import wandb
+    wandb.init(project=wandb_project, name=wandb_run_name, config=config)
+
 # begin logging
 if master_process:
     run_id = str(uuid.uuid4())
@@ -498,6 +510,14 @@ for step in range(args.num_iterations + 1):
         val_loss /= val_steps
         # log val loss to console and to logfile
         if master_process:
+            lr = get_lr(step)    
+            if wandb_log:
+                wandb.log({
+                    "iter": step,
+                    "train/loss": train_loss,
+                    "val/loss": val_loss,
+                    "lr": lr,
+                })
             print(f'step:{step}/{args.num_iterations} val_loss:{val_loss:.4f} train_time:{training_time_ms:.0f}ms step_avg:{training_time_ms/(timed_steps-1):.2f}ms')
             with open(logfile, "a") as f:
                 f.write(f'step:{step}/{args.num_iterations} val_loss:{val_loss:.4f} train_time:{training_time_ms:.0f}ms step_avg:{training_time_ms/(timed_steps-1):.2f}ms\n')

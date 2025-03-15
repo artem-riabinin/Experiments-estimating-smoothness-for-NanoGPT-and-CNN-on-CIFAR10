@@ -492,7 +492,7 @@ for step in range(args.num_iterations + 1):
     timed_steps = float('nan') if step <= 11 else (step - 10) + 1 # <= 11 to avoid bug in val
 
     # once in a while evaluate the validation dataset
-    if (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
+    if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
         # stop the clock
         torch.cuda.synchronize()
         training_time_ms += 1000 * (time.time() - t0)
@@ -509,15 +509,6 @@ for step in range(args.num_iterations + 1):
         dist.all_reduce(val_loss, op=dist.ReduceOp.AVG)
         val_loss /= val_steps
         # log val loss to console and to logfile
-        if master_process:
-            lr = get_lr(step)    
-            if wandb_log:
-                wandb.log({
-                    "iter": step,
-                    "train/loss": train_loss,
-                    "val/loss": val_loss,
-                    "lr": lr,
-                })
             print(f'step:{step}/{args.num_iterations} val_loss:{val_loss:.4f} train_time:{training_time_ms:.0f}ms step_avg:{training_time_ms/(timed_steps-1):.2f}ms')
             with open(logfile, "a") as f:
                 f.write(f'step:{step}/{args.num_iterations} val_loss:{val_loss:.4f} train_time:{training_time_ms:.0f}ms step_avg:{training_time_ms/(timed_steps-1):.2f}ms\n')
@@ -570,6 +561,18 @@ for step in range(args.num_iterations + 1):
     # everything that follows now is just diagnostics, prints, logging, etc.
 
     #dist.all_reduce(train_loss, op=dist.ReduceOp.AVG) # all-reducing the training loss would be more correct in terms of logging, but slower
+
+    # wandb logging
+    if master_process and (last_step or (args.save_every > 0 and step % args.save_every == 0)):
+        lr = get_lr(step)    
+        if wandb_log:
+            wandb.log({
+                "iter": step,
+                "train/loss": train_loss,
+                "val/loss": val_loss,
+                "lr": lr,
+            })
+            
     if master_process:
         approx_time = training_time_ms + 1000 * (time.time() - t0)
         print(f"step:{step+1}/{args.num_iterations} train_loss:{train_loss.item():.4f} train_time:{approx_time:.0f}ms step_avg:{approx_time/timed_steps:.2f}ms")

@@ -563,12 +563,8 @@ for step in range(args.num_iterations + 1):
 
     #dist.all_reduce(train_loss, op=dist.ReduceOp.AVG) # all-reducing the training loss would be more correct in terms of logging, but slower
 
-    print('step', step)
-    if (last_step or (args.save_every > 0 and step % args.save_every == 0)):
-        print('222')
-
     # wandb logging
-    if master_process and (last_step or (args.save_every > 0 and step % args.save_every == 0)):
+    if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
         print('111')
         lr = get_lr(step)    
         if wandb_log:

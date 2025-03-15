@@ -25,7 +25,7 @@ from torch.optim import AdamW
 # wandb logging
 wandb_log = True 
 wandb_project = 'nanogpt'
-wandb_run_name = 'nanogpt_muon_default'
+wandb_run_name = 'nanogpt_AdamW_default'
 
 # -----------------------------------------------------------------------------
 # Scion optimizer
@@ -428,7 +428,7 @@ optim_groups = [{
         'norm_kwargs': {'steps': 5}, 
         'scale': args.scale,
 }]
-optimizer1 = Scion(optim_groups, lr=args.learning_rate, momentum=args.momentum, unconstrained=args.unconstrained)
+optimizer1 = AdamW(optim_groups, lr=args.learning_rate)
 optimizer2 = AdamW(raw_model.lm_head.parameters(), lr=args.learning_rate)
 optimizers = [optimizer1, optimizer2]
 

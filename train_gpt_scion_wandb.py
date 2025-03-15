@@ -451,9 +451,11 @@ def get_lr(it):
 schedulers = [torch.optim.lr_scheduler.LambdaLR(opt, get_lr) for opt in optimizers]
 
 # wandb logging
+config_keys = [k for k,v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
+configuration = {k: globals()[k] for k in config_keys}
 if wandb_log and master_process:
     import wandb
-    wandb.init(project=wandb_project, name=wandb_run_name)
+    wandb.init(project=wandb_project, name=wandb_run_name, config=configuration)
 
 # begin logging
 if master_process:

@@ -450,10 +450,10 @@ def get_lr(it):
         return decay_ratio
 schedulers = [torch.optim.lr_scheduler.LambdaLR(opt, get_lr) for opt in optimizers]
 
-# logging
+# wandb logging
 if wandb_log and master_process:
     import wandb
-    wandb.init(project=wandb_project, name=wandb_run_name, config=config)
+    wandb.init(project=wandb_project, name=wandb_run_name)
 
 # begin logging
 if master_process:

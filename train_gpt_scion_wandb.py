@@ -565,7 +565,6 @@ for step in range(args.num_iterations + 1):
 
     # wandb logging
     if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
-        print('111')
         lr = get_lr(step)    
         if wandb_log:
             wandb.log({

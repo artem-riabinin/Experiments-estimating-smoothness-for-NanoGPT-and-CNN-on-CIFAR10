@@ -429,7 +429,7 @@ optim_groups = [{
         'scale': args.scale,
 }]
 optimizer1 = Scion(optim_groups, lr=args.learning_rate, momentum=args.momentum, unconstrained=args.unconstrained)
-optimizer2 = AdamW(raw_model.m_head.parameters(), lr=args.learning_rate)
+optimizer2 = AdamW(raw_model.lm_head.parameters(), lr=args.learning_rate)
 optimizers = [optimizer1, optimizer2]
 
 # learning rate decay scheduler (linear warmup and warmdown)

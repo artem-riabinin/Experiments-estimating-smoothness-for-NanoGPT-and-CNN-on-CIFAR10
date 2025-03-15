@@ -18,6 +18,8 @@ import torch.distributed as dist
 import torch._inductor.config as config
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+from torch.optim import AdamW
+
 #-----------------------------------------------------------------------------
 
 # wandb logging
@@ -425,15 +427,10 @@ optim_groups = [{
         'norm': 'Spectral', 
         'norm_kwargs': {'steps': 5}, 
         'scale': args.scale,
-}, {
-    'params': raw_model.lm_head.parameters(), 
-    'norm': 'Sign', 
-    'norm_kwargs': {}, 
-    'scale': args.last_scale,
-}
-]
+}]
 optimizer1 = Scion(optim_groups, lr=args.learning_rate, momentum=args.momentum, unconstrained=args.unconstrained)
-optimizers = [optimizer1]
+optimizer2 = AdamW(raw_model.m_head.parameters(), lr=args.learning_rate)
+optimizers = [optimizer1, optimizer2]
 
 # learning rate decay scheduler (linear warmup and warmdown)
 def get_lr(it):

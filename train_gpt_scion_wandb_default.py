@@ -534,20 +534,6 @@ for step in range(args.num_iterations + 1):
     # but also after the very last iteration. so we loop for step <= num_iterations
     # instead of just < num_iterations (one extra due to <=), only to do
     # the validation/sampling one last time, and then we break right here as we're done.
-    
-    # wandb logging
-    if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
-        lr = get_lr(step)    
-        if wandb_log:
-            wandb.log({
-                "iter": step,
-                "train/loss": train_loss,
-                "val/loss": val_loss,
-                "lr": lr,
-            })
-    
-    if last_step:
-        break
 
     # --------------- TRAINING SECTION BEGIN -----------------
     model.train()
@@ -574,6 +560,17 @@ for step in range(args.num_iterations + 1):
     model.zero_grad(set_to_none=True)
     # --------------- TRAINING SECTION END -------------------
     # everything that follows now is just diagnostics, prints, logging, etc.
+    
+    # wandb logging
+    if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
+        lr = get_lr(step)    
+        if wandb_log:
+            wandb.log({
+                "iter": step,
+                "train/loss": train_loss,
+                "val/loss": val_loss,
+                "lr": lr,
+            })
 
     #dist.all_reduce(train_loss, op=dist.ReduceOp.AVG) # all-reducing the training loss would be more correct in terms of logging, but slower
             

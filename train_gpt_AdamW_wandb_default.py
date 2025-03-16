@@ -355,10 +355,14 @@ class Hyperparameters:
     batch_size : int = 8*64 # batch size, in sequences, across all devices
     device_batch_size : int = 64 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
-    num_iterations : int = 5100 # number of iterations to run
+    num_iterations : int = 10000 # number of iterations to run
     learning_rate : float = 0.00036
-    warmup_iters : int = 0
-    warmdown_iters : int = 1450 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
+    warmup_iters : int = 500
+    warmup_iters_AdamW: int = 500
+    beta1: float = 0.9
+    beta2: float = 0.95
+    weight_decay: float = 0.1
+    warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0
     # evaluation and logging hyperparams
     val_loss_every : int = 50 # every how many steps to evaluate val loss? 0 for only at the end
@@ -428,8 +432,8 @@ optim_groups = [{
         'norm_kwargs': {'steps': 5}, 
         'scale': args.scale,
 }]
-optimizer1 = AdamW(optim_groups, lr=args.learning_rate)
-optimizer2 = AdamW(raw_model.lm_head.parameters(), lr=args.learning_rate)
+optimizer1 = AdamW(optim_groups, lr=args.learning_rate, betas=(args.beta1, args.beta2), weight_decay=args.weight_decay)
+optimizer2 = AdamW(raw_model.lm_head.parameters(), lr=args.learning_rate, betas=(args.beta1, args.beta2), weight_decay=args.weight_decay)
 optimizers = [optimizer1, optimizer2]
 
 # learning rate decay scheduler (linear warmup and warmdown)
@@ -446,6 +450,23 @@ def get_lr(it):
         decay_ratio = (args.num_iterations - it) / args.warmdown_iters
         return decay_ratio
 schedulers = [torch.optim.lr_scheduler.LambdaLR(opt, get_lr) for opt in optimizers]
+
+def get_lr_AdamW(it):
+    assert it <= args.num_iterations
+    # 1) linear warmup for warmup_iters_AdamW steps
+    if it < args.warmup_iters_AdamW:
+        return (it+1) / args.warmup_iters_AdamW
+    # 2) constant lr for a while
+    elif it < args.num_iterations - args.warmdown_iters:
+        return 1.0
+    # 3) linear warmdown
+    else:
+        decay_ratio = (args.num_iterations - it) / args.warmdown_iters
+        return decay_ratio
+        
+scheduler1 = torch.optim.lr_scheduler.LambdaLR(optimizer1, get_lr)
+scheduler2 = torch.optim.lr_scheduler.LambdaLR(optimizer2, get_lr_AdamW)
+schedulers = [scheduler1, scheduler2]
 
 # wandb logging
 config_keys = [k for k, v in vars(args).items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
@@ -531,6 +552,18 @@ for step in range(args.num_iterations + 1):
     # but also after the very last iteration. so we loop for step <= num_iterations
     # instead of just < num_iterations (one extra due to <=), only to do
     # the validation/sampling one last time, and then we break right here as we're done.
+    
+    # wandb logging
+    if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
+        lr = get_lr(step)    
+        if wandb_log:
+            wandb.log({
+                "iter": step,
+                "train/loss": train_loss,
+                "val/loss": val_loss,
+                "lr": lr,
+            })
+    
     if last_step:
         break
 
@@ -561,17 +594,6 @@ for step in range(args.num_iterations + 1):
     # everything that follows now is just diagnostics, prints, logging, etc.
 
     #dist.all_reduce(train_loss, op=dist.ReduceOp.AVG) # all-reducing the training loss would be more correct in terms of logging, but slower
-
-    # wandb logging
-    if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
-        lr = get_lr(step)    
-        if wandb_log:
-            wandb.log({
-                "iter": step,
-                "train/loss": train_loss,
-                "val/loss": val_loss,
-                "lr": lr,
-            })
             
     if master_process:
         approx_time = training_time_ms + 1000 * (time.time() - t0)

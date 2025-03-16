@@ -353,10 +353,10 @@ class Hyperparameters:
     batch_size : int = 8*64 # batch size, in sequences, across all devices
     device_batch_size : int = 64 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
-    num_iterations : int = 5100 # number of iterations to run
+    num_iterations : int = 10000 # number of iterations to run
     learning_rate : float = 0.00036
     warmup_iters : int = 0
-    warmdown_iters : int = 1450 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
+    warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0
     # evaluation and logging hyperparams
     val_loss_every : int = 50 # every how many steps to evaluate val loss? 0 for only at the end
@@ -534,6 +534,18 @@ for step in range(args.num_iterations + 1):
     # but also after the very last iteration. so we loop for step <= num_iterations
     # instead of just < num_iterations (one extra due to <=), only to do
     # the validation/sampling one last time, and then we break right here as we're done.
+    
+    # wandb logging
+    if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
+        lr = get_lr(step)    
+        if wandb_log:
+            wandb.log({
+                "iter": step,
+                "train/loss": train_loss,
+                "val/loss": val_loss,
+                "lr": lr,
+            })
+    
     if last_step:
         break
 
@@ -564,17 +576,6 @@ for step in range(args.num_iterations + 1):
     # everything that follows now is just diagnostics, prints, logging, etc.
 
     #dist.all_reduce(train_loss, op=dist.ReduceOp.AVG) # all-reducing the training loss would be more correct in terms of logging, but slower
-
-    # wandb logging
-    if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
-        lr = get_lr(step)    
-        if wandb_log:
-            wandb.log({
-                "iter": step,
-                "train/loss": train_loss,
-                "val/loss": val_loss,
-                "lr": lr,
-            })
             
     if master_process:
         approx_time = training_time_ms + 1000 * (time.time() - t0)

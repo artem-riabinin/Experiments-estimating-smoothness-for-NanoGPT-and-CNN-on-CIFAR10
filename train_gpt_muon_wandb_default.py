@@ -19,6 +19,7 @@ import torch._inductor.config as config
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from torch.optim import AdamW
+from torch.nn.utils import clip_grad_norm_
 
 #-----------------------------------------------------------------------------
 
@@ -353,7 +354,7 @@ class Hyperparameters:
     input_val_bin : str = 'data/fineweb10B/fineweb_val_*.bin' # input .bin to eval validation loss on
     # optimization hyperparams
     batch_size : int = 8*64 # batch size, in sequences, across all devices
-    device_batch_size : int = 64 # batch size, in sequences, per device
+    device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
     num_iterations : int = 10000 # number of iterations to run
     learning_rate : float = 0.00036
@@ -362,6 +363,7 @@ class Hyperparameters:
     beta1: float = 0.9
     beta2: float = 0.95
     weight_decay: float = 0.1
+    grad_clip_AdamW: float = 1.0
     warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0
     # evaluation and logging hyperparams
@@ -572,6 +574,9 @@ for step in range(args.num_iterations + 1):
         p.grad /= train_accumulation_steps
     # step the optimizers and schedulers
     for opt, sched in zip(optimizers, schedulers):
+        if isinstance(opt, torch.optim.AdamW):
+            torch.nn.utils.clip_grad_norm_(raw_model.lm_head.parameters(), grad_clip_AdamW) # Clip gradients for AdamW
+            print('heellow')
         opt.step()
         sched.step()
     # null the gradients

@@ -573,10 +573,9 @@ for step in range(args.num_iterations + 1):
     for p in model.parameters():
         p.grad /= train_accumulation_steps
     # step the optimizers and schedulers
+    if grad_clip_AdamW != 0.0:
+        torch.nn.utils.clip_grad_norm_(raw_model.lm_head.parameters(), args.grad_clip_AdamW) # Clip gradients for AdamW
     for opt, sched in zip(optimizers, schedulers):
-        if isinstance(opt, torch.optim.AdamW):
-            torch.nn.utils.clip_grad_norm_(raw_model.lm_head.parameters(), args.grad_clip_AdamW) # Clip gradients for AdamW
-            print('heellow')
         opt.step()
         sched.step()
     # null the gradients

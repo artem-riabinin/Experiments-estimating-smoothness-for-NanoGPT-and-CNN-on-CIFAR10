@@ -356,7 +356,7 @@ class Hyperparameters:
     batch_size : int = 8*64 # batch size, in sequences, across all devices
     device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
-    num_iterations : int = 10000 # number of iterations to run
+    num_iterations : int = 150 # number of iterations to run
     learning_rate : float = 0.00036
     warmup_iters : int = 500
     warmup_iters_AdamW: int = 500

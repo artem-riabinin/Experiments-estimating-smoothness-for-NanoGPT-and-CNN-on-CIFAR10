@@ -575,7 +575,7 @@ for step in range(args.num_iterations + 1):
     # step the optimizers and schedulers
     for opt, sched in zip(optimizers, schedulers):
         if isinstance(opt, torch.optim.AdamW):
-            torch.nn.utils.clip_grad_norm_(raw_model.lm_head.parameters(), grad_clip_AdamW) # Clip gradients for AdamW
+            torch.nn.utils.clip_grad_norm_(raw_model.lm_head.parameters(), args.grad_clip_AdamW) # Clip gradients for AdamW
             print('heellow')
         opt.step()
         sched.step()

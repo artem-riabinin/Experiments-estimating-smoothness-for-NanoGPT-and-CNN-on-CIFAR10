@@ -362,10 +362,9 @@ class Hyperparameters:
     warmup_iters_AdamW: int = 500
     beta1: float = 0.9
     beta2: float = 0.95
-    weight_decay: float = 0.1
     grad_clip_AdamW: float = 1.0
     warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
-    weight_decay : float = 0
+    weight_decay : float = 0.01
     # evaluation and logging hyperparams
     val_loss_every : int = 50 # every how many steps to evaluate val loss? 0 for only at the end
     val_tokens : int = 10485760 # how many tokens of validation data? it's important to keep this fixed for consistent comparisons

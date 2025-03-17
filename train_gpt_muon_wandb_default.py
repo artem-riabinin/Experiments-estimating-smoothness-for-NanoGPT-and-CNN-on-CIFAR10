@@ -26,7 +26,7 @@ from torch.nn.utils import clip_grad_norm_
 # wandb logging
 wandb_log = True 
 wandb_project = 'nanogpt'
-wandb_run_name = 'nanogpt_muon_default'
+wandb_run_name = 'nanogpt_Muon_default'
 
 # -----------------------------------------------------------------------------
 # Scion optimizer
@@ -359,10 +359,10 @@ class Hyperparameters:
     num_iterations : int = 10000 # number of iterations to run
     learning_rate : float = 0.00036
     warmup_iters : int = 0
-    warmup_iters_AdamW: int = 500
+    warmup_iters_AdamW: int = 0
     beta1: float = 0.9
     beta2: float = 0.95
-    grad_clip_AdamW: float = 1.0
+    grad_clip_AdamW: float = 0
     warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0.01
     # evaluation and logging hyperparams
@@ -372,7 +372,7 @@ class Hyperparameters:
     n_layer : int = 12
     n_head : int = 6 # set as n_embd/128 so head_dim is 128
     n_embd : int = 768
-    unconstrained: bool = False
+    unconstrained: bool = True
     momentum: float = 0.1
     scale : float = 50
     last_scale : float = 3000

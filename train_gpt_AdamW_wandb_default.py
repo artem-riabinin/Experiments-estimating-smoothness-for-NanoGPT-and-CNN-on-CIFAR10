@@ -356,15 +356,16 @@ class Hyperparameters:
     batch_size : int = 8*64 # batch size, in sequences, across all devices
     device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
-    num_iterations : int = 150 # number of iterations to run
+    num_iterations : int = 50 # number of iterations to run
     learning_rate : float = 0.00036
-    warmup_iters : int = 500
-    warmup_iters_AdamW: int = 500
+    warmup_iters : int = 5
+    warmup_iters_AdamW: int = 5
     beta1: float = 0.9
     beta2: float = 0.95
     weight_decay: float = 0.1
-    warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
+    warmdown_iters : int = 28 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0
+    grad_clip_AdamW: float = 1.0
     # evaluation and logging hyperparams
     val_loss_every : int = 50 # every how many steps to evaluate val loss? 0 for only at the end
     val_tokens : int = 10485760 # how many tokens of validation data? it's important to keep this fixed for consistent comparisons

@@ -358,7 +358,7 @@ class Hyperparameters:
     sequence_length : int = 1024 # sequence length, in tokens
     num_iterations : int = 10000 # number of iterations to run
     learning_rate : float = 0.00036
-    warmup_iters : int = 5
+    warmup_iters : int = 500
     warmup_iters_AdamW: int = 500
     beta1: float = 0.9
     beta2: float = 0.95

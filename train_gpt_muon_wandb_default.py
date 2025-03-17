@@ -24,7 +24,7 @@ from torch.nn.utils import clip_grad_norm_
 #-----------------------------------------------------------------------------
 
 # wandb logging
-wandb_log = False 
+wandb_log = True 
 wandb_project = 'nanogpt'
 wandb_run_name = 'nanogpt_muon_default'
 

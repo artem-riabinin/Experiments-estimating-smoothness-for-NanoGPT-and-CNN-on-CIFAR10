@@ -570,6 +570,21 @@ for step in range(args.num_iterations + 1):
                 loss.backward()
         else:
             loss.backward() # just sync on the last step
+            
+    # wandb logging
+    if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
+        lr = get_lr(step)    
+        if wandb_log:
+            wandb.log({
+                "iter": step,
+                "train/loss": train_loss,
+                "val/loss": val_loss,
+                "lr": lr,
+            })
+            
+    if last_step:
+        break
+        
     for p in model.parameters():
         p.grad /= train_accumulation_steps
     # step the optimizers and schedulers
@@ -583,17 +598,6 @@ for step in range(args.num_iterations + 1):
     # --------------- TRAINING SECTION END -------------------
     # everything that follows now is just diagnostics, prints, logging, etc.
     
-    # wandb logging
-    if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
-        lr = get_lr(step)    
-        if wandb_log:
-            wandb.log({
-                "iter": step,
-                "train/loss": train_loss,
-                "val/loss": val_loss,
-                "lr": lr,
-            })
-
     #dist.all_reduce(train_loss, op=dist.ReduceOp.AVG) # all-reducing the training loss would be more correct in terms of logging, but slower
             
     if master_process:

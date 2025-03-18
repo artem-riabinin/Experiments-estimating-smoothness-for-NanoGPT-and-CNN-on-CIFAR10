@@ -23,7 +23,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # wandb logging
 wandb_log = True 
 wandb_project = 'nanogpt'
-wandb_run_name = 'nanogpt_unScion_default'
+wandb_run_name = 'nanogpt_Scion_default'
 
 # -----------------------------------------------------------------------------
 # Scion optimizer
@@ -365,9 +365,9 @@ class Hyperparameters:
     n_layer : int = 12
     n_head : int = 6 # set as n_embd/128 so head_dim is 128
     n_embd : int = 768
-    unconstrained: bool = True
+    unconstrained: bool = False
     momentum: float = 0.1
-    scale : float = 50
+    scale : float = 100
     last_scale : float = 3000
 
 from datargs import parse

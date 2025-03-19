@@ -144,7 +144,7 @@ class ScionBrox(torch.optim.Optimizer):
             all_grads = [p.grad for p in group['params'] if p.grad is not None]
             norm_grad = torch.norm(torch.cat([g.view(-1) for g in all_grads]))
             tk = (total_train_loss - f_star) / norm_grad
-            if mater_process:
+            if master_process:
                 print('tk: ', tk)
             lr = group['lr']
             momentum = group['momentum']

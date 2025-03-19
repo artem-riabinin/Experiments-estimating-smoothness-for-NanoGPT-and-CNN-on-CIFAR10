@@ -164,19 +164,16 @@ class ScionBrox(torch.optim.Optimizer):
                     
                 update = scale * norm_backend.lmo(g)       
                 adaptive_lr = tk / torch.norm(p.data - update)
-                if master_process:
-                    print('lr: ', lr)
-                lr = adaptive_lr
-                if master_process:
-                    print('lr: ', lr)
+                #lr = adaptive_lr
 
                 if unconstrained:
                     p.data.add_(update, alpha=-lr)  # Unconstrained Scion
                 else:
-                    if torch.norm(p.data - update) <= tk:
-                        p.data.copy_(update)
-                    else:
-                        p.data.mul_(1-lr).add_(update, alpha=-lr) # Scion
+                    p.data.mul_(1-lr).add_(update, alpha=-lr) # Scion
+                    #if torch.norm(p.data - update) <= tk:
+                    #    p.data.copy_(update)
+                    #else:
+                    #    p.data.mul_(1-lr).add_(update, alpha=-lr) # Scion
 
 
 # -----------------------------------------------------------------------------
@@ -405,7 +402,7 @@ class Hyperparameters:
     sequence_length : int = 1024 # sequence length, in tokens
     num_iterations : int = 10000 # number of iterations to run
     learning_rate_ext : float = 0.00036
-    learning_rate_int : float = 0.01
+    learning_rate_int : float = 0.00036
     f_star: float = 3.24
     warmup_iters : int = 0
     warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule

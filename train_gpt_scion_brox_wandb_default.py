@@ -401,7 +401,7 @@ class Hyperparameters:
     sequence_length : int = 1024 # sequence length, in tokens
     num_iterations : int = 10000 # number of iterations to run
     learning_rate_ext : float = 0.00036
-    learning_rate_int : float = 1
+    learning_rate_int : float = 2
     f_star: float = 3.24
     warmup_iters : int = 0
     warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule

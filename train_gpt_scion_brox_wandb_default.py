@@ -127,6 +127,49 @@ class Scion(torch.optim.Optimizer):
                     p.data.add_(update, alpha=-lr)  # Unconstrained Scion
                 else:
                     p.data.mul_(1-lr).add_(update, alpha=-lr) # Scion
+                    
+                    
+class ScionBrox(torch.optim.Optimizer):
+    def __init__(self, params, lr=1e-3, momentum=1.0, norm: str='Spectral', norm_kwargs: dict=None, scale=1.0, unconstrained=False, f_star=0.0):
+        if lr < 0.0:
+            raise ValueError(f"Invalid learning rate: {lr}")
+        if momentum < 0.0:
+            raise ValueError(f"Invalid momentum value: {momentum}")
+        defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained, f_star=f_star)
+        super().__init__(params, defaults)
+
+    def step(self, total_train_loss=None):
+        for group in self.param_groups:
+            lr = group['lr']
+            momentum = group['momentum']
+            scale = group['scale']
+            unconstrained = group['unconstrained']
+            f_star = group['f_star']
+            norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
+            for p in group['params']:
+                g = p.grad
+                if g is None:
+                    continue
+                state = self.state[p]
+
+                if momentum != 1:
+                    if 'momentum_buffer' not in state.keys():
+                        state['momentum_buffer'] = torch.zeros_like(g)
+                    buf = state['momentum_buffer']
+                    buf.mul_(1-momentum).add_(g, alpha=momentum)
+                    g = buf
+                    
+                if master_process:
+                    new_lr = (total_train_loss - f_star) / (torch.norm(g) * torch.norm(p.data - update))
+                    print('new_lr', new_lr)
+                    print('t_k', (total_train_loss - f_star) / (torch.norm(g)))
+                    print('norm(xk-zk)', torch.norm(p.data - update))
+
+                update = scale * norm_backend.lmo(g)
+                if unconstrained:
+                    p.data.add_(update, alpha=-lr)  # Unconstrained Scion
+                else:
+                    p.data.mul_(1-lr).add_(update, alpha=-lr) # Scion
 
 
 # -----------------------------------------------------------------------------
@@ -354,7 +397,9 @@ class Hyperparameters:
     device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
     num_iterations : int = 10000 # number of iterations to run
-    learning_rate : float = 0.00036
+    learning_rate_ext : float = 0.00036
+    learning_rate_int : float = 0.00036
+    f_star: float = 3.24
     warmup_iters : int = 0
     warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0
@@ -420,20 +465,23 @@ raw_model = model.module # always contains the "raw" unwrapped model
 ctx = torch.amp.autocast(device_type='cuda', dtype=torch.bfloat16)
 
 # init the optimizer(s)
-optim_groups = [{
+optim_groups1 = {
     'params': raw_model.transformer.h.parameters(), 
         'norm': 'Spectral', 
         'norm_kwargs': {'steps': 5}, 
         'scale': args.scale,
-}, {
+}
+
+optim_groups2 = {
     'params': raw_model.lm_head.parameters(), 
     'norm': 'Sign', 
     'norm_kwargs': {}, 
     'scale': args.last_scale,
 }
-]
-optimizer1 = Scion(optim_groups, lr=args.learning_rate, momentum=args.momentum, unconstrained=args.unconstrained)
-optimizers = [optimizer1]
+
+optimizer1 = ScionBrox([optim_group1], lr=args.learning_rate_int, momentum=args.momentum, unconstrained=args.unconstrained, f_star=args.f_star)
+optimizer2 = Scion([optim_group2], lr=args.learning_rate_ext, momentum=args.momentum, unconstrained=args.unconstrained)
+optimizers = [optimizer1, optimizer2]
 
 # learning rate decay scheduler (linear warmup and warmdown)
 def get_lr(it):
@@ -551,13 +599,10 @@ for step in range(args.num_iterations + 1):
             with model.no_sync(): # there's no need to sync gradients every accumulation step
                 loss.backward()
         else:
-            loss.backward() # just sync on the last step
-            
+            loss.backward() # just sync on the last step   
             
     total_train_loss /= train_accumulation_steps
-    print(f"Rank {dist.get_rank()} local total_train_loss: {total_train_loss}")
     dist.all_reduce(total_train_loss, op=dist.ReduceOp.AVG)
-    print('all', total_train_loss)
             
     # wandb logging
     if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
@@ -577,6 +622,8 @@ for step in range(args.num_iterations + 1):
         p.grad /= train_accumulation_steps
     # step the optimizers and schedulers
     for opt, sched in zip(optimizers, schedulers):
+        if isinstance(opt, ScionBrox):
+            opt.step(total_train_loss=total_train_loss)
         opt.step()
         sched.step()
     # null the gradients

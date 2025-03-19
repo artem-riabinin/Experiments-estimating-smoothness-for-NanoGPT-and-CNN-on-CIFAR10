@@ -144,8 +144,6 @@ class ScionBrox(torch.optim.Optimizer):
             all_grads = [p.grad for p in group['params'] if p.grad is not None]
             norm_grad = torch.norm(torch.cat([g.view(-1) for g in all_grads]))
             tk = (total_train_loss - f_star) / norm_grad
-            if master_process:
-                print('tk: ', tk)
             lr = group['lr']
             momentum = group['momentum']
             scale = group['scale']
@@ -164,12 +162,9 @@ class ScionBrox(torch.optim.Optimizer):
                     buf.mul_(1-momentum).add_(g, alpha=momentum)
                     g = buf
                     
-                update = scale * norm_backend.lmo(g)
-                    
-                if master_process:
-                    new_lr = tk / torch.norm(p.data - update)
-                    print('new_lr: ', new_lr)
-                    print('norm(xk-zk): ', torch.norm(p.data - update))
+                update = scale * norm_backend.lmo(g)       
+                adaptive_lr = tk / torch.norm(p.data - update)
+                lr = adaptive_lr
 
                 if unconstrained:
                     p.data.add_(update, alpha=-lr)  # Unconstrained Scion

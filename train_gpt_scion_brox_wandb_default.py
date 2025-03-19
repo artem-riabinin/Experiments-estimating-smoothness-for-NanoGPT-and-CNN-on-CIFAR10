@@ -479,8 +479,8 @@ optim_groups2 = {
     'scale': args.last_scale,
 }
 
-optimizer1 = ScionBrox([optim_group1], lr=args.learning_rate_int, momentum=args.momentum, unconstrained=args.unconstrained, f_star=args.f_star)
-optimizer2 = Scion([optim_group2], lr=args.learning_rate_ext, momentum=args.momentum, unconstrained=args.unconstrained)
+optimizer1 = ScionBrox([optim_groups1], lr=args.learning_rate_int, momentum=args.momentum, unconstrained=args.unconstrained, f_star=args.f_star)
+optimizer2 = Scion([optim_groups2], lr=args.learning_rate_ext, momentum=args.momentum, unconstrained=args.unconstrained)
 optimizers = [optimizer1, optimizer2]
 
 # learning rate decay scheduler (linear warmup and warmdown)

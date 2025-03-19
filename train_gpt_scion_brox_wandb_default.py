@@ -140,11 +140,16 @@ class ScionBrox(torch.optim.Optimizer):
 
     def step(self, total_train_loss=None):
         for group in self.param_groups:
+            f_star = group['f_star']
+            all_grads = [p.grad for p in group['params'] if p.grad is not None]
+            norm_grad = torch.norm(torch.cat([g.view(-1) for g in all_grads]))
+            tk = (total_train_loss - f_star) / norm_grad
+            if mater_process:
+                print('tk: ', tk)
             lr = group['lr']
             momentum = group['momentum']
             scale = group['scale']
             unconstrained = group['unconstrained']
-            f_star = group['f_star']
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
             for p in group['params']:
                 g = p.grad
@@ -162,10 +167,9 @@ class ScionBrox(torch.optim.Optimizer):
                 update = scale * norm_backend.lmo(g)
                     
                 if master_process:
-                    new_lr = (total_train_loss - f_star) / (torch.norm(g) * torch.norm(p.data - update))
-                    print('new_lr', new_lr)
-                    print('t_k', (total_train_loss - f_star) / (torch.norm(g)))
-                    print('norm(xk-zk)', torch.norm(p.data - update))
+                    new_lr = tk / torch.norm(p.data - update)
+                    print('new_lr: ', new_lr)
+                    print('norm(xk-zk): ', torch.norm(p.data - update))
 
                 if unconstrained:
                     p.data.add_(update, alpha=-lr)  # Unconstrained Scion
@@ -413,7 +417,7 @@ class Hyperparameters:
     n_embd : int = 768
     unconstrained: bool = False
     momentum: float = 0.1
-    scale : float = 100
+    scale : float = 50
     last_scale : float = 3000
 
 from datargs import parse

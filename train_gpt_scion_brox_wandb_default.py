@@ -555,7 +555,7 @@ for step in range(args.num_iterations + 1):
             
             
     total_train_loss /= train_accumulation_steps
-    print('each', total_train_loss)
+    print(f"Rank {dist.get_rank()} local total_train_loss: {total_train_loss}")
     dist.all_reduce(total_train_loss, op=dist.ReduceOp.AVG)
     print('all', total_train_loss)
             

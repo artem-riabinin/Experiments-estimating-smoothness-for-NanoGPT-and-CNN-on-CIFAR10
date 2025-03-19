@@ -625,7 +625,8 @@ for step in range(args.num_iterations + 1):
     for opt, sched in zip(optimizers, schedulers):
         if isinstance(opt, ScionBrox):
             opt.step(total_train_loss=total_train_loss)
-        opt.step()
+        else:
+            opt.step()
         sched.step()
     # null the gradients
     model.zero_grad(set_to_none=True)

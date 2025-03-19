@@ -159,13 +159,14 @@ class ScionBrox(torch.optim.Optimizer):
                     buf.mul_(1-momentum).add_(g, alpha=momentum)
                     g = buf
                     
+                update = scale * norm_backend.lmo(g)
+                    
                 if master_process:
                     new_lr = (total_train_loss - f_star) / (torch.norm(g) * torch.norm(p.data - update))
                     print('new_lr', new_lr)
                     print('t_k', (total_train_loss - f_star) / (torch.norm(g)))
                     print('norm(xk-zk)', torch.norm(p.data - update))
 
-                update = scale * norm_backend.lmo(g)
                 if unconstrained:
                     p.data.add_(update, alpha=-lr)  # Unconstrained Scion
                 else:

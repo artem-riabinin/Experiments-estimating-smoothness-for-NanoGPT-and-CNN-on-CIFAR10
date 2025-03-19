@@ -23,7 +23,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # wandb logging
 wandb_log = True 
 wandb_project = 'nanogpt'
-wandb_run_name = 'nanogpt_Scion_default'
+wandb_run_name = 'nanogpt_ScionBrox_default'
 
 # -----------------------------------------------------------------------------
 # Scion optimizer

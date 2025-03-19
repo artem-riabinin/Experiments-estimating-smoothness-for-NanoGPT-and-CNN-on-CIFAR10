@@ -402,8 +402,8 @@ class Hyperparameters:
     device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
     num_iterations : int = 10000 # number of iterations to run
-    learning_rate_ext : float = 0.00036
-    learning_rate_int : float = 0.1
+    learning_rate_ext : float = 1
+    learning_rate_int : float = 1
     f_star: float = 3.24
     warmup_iters : int = 0
     warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
@@ -485,7 +485,8 @@ optim_groups2 = {
 }
 
 optimizer1 = ScionBrox([optim_groups1], lr=args.learning_rate_int, momentum=args.momentum, unconstrained=args.unconstrained, f_star=args.f_star)
-optimizer2 = Scion([optim_groups2], lr=args.learning_rate_ext, momentum=args.momentum, unconstrained=args.unconstrained)
+#optimizer2 = Scion([optim_groups2], lr=args.learning_rate_ext, momentum=args.momentum, unconstrained=args.unconstrained)
+optimizer2 = ScionBrox([optim_groups2], lr=args.learning_rate_ext, momentum=args.momentum, unconstrained=args.unconstrained, f_star=args.f_star)
 optimizers = [optimizer1, optimizer2]
 
 # learning rate decay scheduler (linear warmup and warmdown)

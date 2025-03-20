@@ -141,10 +141,11 @@ class ScionBrox(torch.optim.Optimizer):
     def step(self, total_train_loss=None):
         for group in self.param_groups:
             f_star = group['f_star']
-            #all_grads = [p.grad for p in group['params'] if p.grad is not None]
-            #norm_grad = torch.norm(torch.cat([g.view(-1) for g in all_grads])) 
             lr = group['lr']
             tk = lr
+            #all_grads = [p.grad for p in group['params'] if p.grad is not None]
+            #norm_grad = torch.norm(torch.cat([g.view(-1) for g in all_grads])) 
+            tk = (total_train_loss - f_star) / norm_grad
             momentum = group['momentum']
             scale = group['scale']
             unconstrained = group['unconstrained']

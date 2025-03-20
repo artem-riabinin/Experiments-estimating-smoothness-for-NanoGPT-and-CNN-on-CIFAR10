@@ -23,7 +23,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # wandb logging
 wandb_log = True 
 wandb_project = 'nanogpt'
-wandb_run_name = 'nanogpt_Scion_default'
+wandb_run_name = 'nanogpt_ScionScheduleFree_default'
 
 # -----------------------------------------------------------------------------
 # Scion optimizer
@@ -93,14 +93,36 @@ norm_dict = {
 }
 
 
-class Scion(torch.optim.Optimizer):
+class ScionScheduleFree(torch.optim.Optimizer):
     def __init__(self, params, lr=1e-3, momentum=1.0, norm: str='Spectral', norm_kwargs: dict=None, scale=1.0, unconstrained=False):
         if lr < 0.0:
             raise ValueError(f"Invalid learning rate: {lr}")
-        if momentum < 0.0:
-            raise ValueError(f"Invalid momentum value: {momentum}")
-        defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained)
+        if momentum <= 0 or momentum >= 1:
+            raise ValueError(f"Momentum must be between 0 and 1 exclusive: {momentum}")
+        defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained, weight_sum=0.0)
         super().__init__(params, defaults)
+        
+    def eval(self):
+        for group in self.param_groups:
+            train_mode = group['train_mode']
+            momentum = group['momentum']
+            if train_mode:
+                for p in group['params']:
+                    state = self.state[p]
+                    if 'z' in state:
+                        p.data.lerp_(end=state['z'], weight=1-1/momentum)
+                group['train_mode'] = False
+
+    def train(self):
+        for group in self.param_groups:
+            train_mode = group['train_mode']
+            momentum = group['momentum']
+            if not train_mode:
+                for p in group['params']:
+                    state = self.state[p]
+                    if 'z' in state:
+                        p.data.lerp_(end=state['z'], weight=1-momentum)
+                group['train_mode'] = True
 
     def step(self):
         for group in self.param_groups:
@@ -109,24 +131,38 @@ class Scion(torch.optim.Optimizer):
             scale = group['scale']
             unconstrained = group['unconstrained']
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
+            
+            weight = lr**2
+            weight_sum = group['weight_sum'] = group['weight_sum'] + weight
+            try:
+                ckp1 = weight/weight_sum
+            except ZeroDivisionError:
+                ckp1 = 0
+                
+            if not group['train_mode']:
+                raise Exception("Not in train mode!")
+                
             for p in group['params']:
+                if p.grad is not None and 'z' not in self.state[p]:
+                    self.state[p]['z'] = torch.clone(p.data)
+                
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+                    
                 g = p.grad
                 if g is None:
                     continue
                 state = self.state[p]
-
-                if momentum != 1:
-                    if 'momentum_buffer' not in state.keys():
-                        state['momentum_buffer'] = torch.zeros_like(g)
-                    buf = state['momentum_buffer']
-                    buf.mul_(1-momentum).add_(g, alpha=momentum)
-                    g = buf
-
+                
                 update = scale * norm_backend.lmo(g)
-                if unconstrained:
-                    p.data.add_(update, alpha=-lr)  # Unconstrained Scion
-                else:
-                    p.data.mul_(1-lr).add_(update, alpha=-lr) # Scion
+                
+                y = p.data
+                z = self.state[p]['z']
+                
+                y.lerp_(end=z, weight=ckp1)
+                y.add_(update, alpha=lr*(momentum*(1-ckp1)-1))
+                z.sub_(update, alpha=lr)
 
 
 # -----------------------------------------------------------------------------
@@ -356,7 +392,7 @@ class Hyperparameters:
     num_iterations : int = 10000 # number of iterations to run
     learning_rate : float = 0.00036
     warmup_iters : int = 0
-    warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
+    warmdown_iters : int = 0 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0
     # evaluation and logging hyperparams
     val_loss_every : int = 50 # every how many steps to evaluate val loss? 0 for only at the end
@@ -366,7 +402,7 @@ class Hyperparameters:
     n_head : int = 6 # set as n_embd/128 so head_dim is 128
     n_embd : int = 768
     unconstrained: bool = False
-    momentum: float = 0.1
+    momentum: float = 0.9
     scale : float = 50
     last_scale : float = 3000
 
@@ -432,7 +468,7 @@ optim_groups = [{
     'scale': args.last_scale,
 }
 ]
-optimizer1 = Scion(optim_groups, lr=args.learning_rate, momentum=args.momentum, unconstrained=args.unconstrained)
+optimizer1 = ScionScheduleFree(optim_groups, lr=args.learning_rate, momentum=args.momentum, unconstrained=args.unconstrained)
 optimizers = [optimizer1]
 
 # learning rate decay scheduler (linear warmup and warmdown)
@@ -500,6 +536,8 @@ for step in range(args.num_iterations + 1):
         training_time_ms += 1000 * (time.time() - t0)
         # run validation batches
         model.eval()
+        for opt in optimizers:
+            opt.eval()
         val_loader.reset()
         val_loss = 0.0
         for _ in range(val_steps):
@@ -537,6 +575,8 @@ for step in range(args.num_iterations + 1):
 
     # --------------- TRAINING SECTION BEGIN -----------------
     model.train()
+    for opt in optimizers:
+        opt.train()
     for i in range(1, train_accumulation_steps+1):
         # forward pass
         with ctx:

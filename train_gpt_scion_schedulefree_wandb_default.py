@@ -99,7 +99,7 @@ class ScionScheduleFree(torch.optim.Optimizer):
             raise ValueError(f"Invalid learning rate: {lr}")
         if momentum <= 0 or momentum >= 1:
             raise ValueError(f"Momentum must be between 0 and 1 exclusive: {momentum}")
-        defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained, weight_sum=0.0)
+        defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained, train_mode=True, weight_sum=0.0)
         super().__init__(params, defaults)
         
     def eval(self):

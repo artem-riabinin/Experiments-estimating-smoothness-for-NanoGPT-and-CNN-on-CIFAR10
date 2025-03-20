@@ -165,7 +165,7 @@ class ScionScheduleFree(torch.optim.Optimizer):
                     z.sub_(update, alpha=lr)
                 else:
                     y.add_(z, alpha=lr*(momentum*(1-ckp1)-1))
-                    z.lerp_(end=-update, weight=lr)
+                    z.mul_(1-lr).add_(update, alpha=-lr)
                     
 
 

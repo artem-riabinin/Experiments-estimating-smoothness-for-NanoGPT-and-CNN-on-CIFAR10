@@ -394,7 +394,7 @@ class Hyperparameters:
     device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
     num_iterations : int = 10000 # number of iterations to run
-    learning_rate : float = 0.0001
+    learning_rate : float = 0.0005
     warmup_iters : int = 0
     warmdown_iters : int = 0 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0
@@ -405,8 +405,8 @@ class Hyperparameters:
     n_layer : int = 12
     n_head : int = 6 # set as n_embd/128 so head_dim is 128
     n_embd : int = 768
-    unconstrained: bool = False
-    momentum: float = 0.9
+    unconstrained: bool = True
+    momentum: float = 0.98
     scale : float = 50
     last_scale : float = 3000
 

@@ -106,6 +106,7 @@ class ScionScheduleFree(torch.optim.Optimizer):
         for group in self.param_groups:
             train_mode = group['train_mode']
             momentum = group['momentum']
+            momentum = 1 - momentum
             if train_mode:
                 for p in group['params']:
                     state = self.state[p]
@@ -117,6 +118,7 @@ class ScionScheduleFree(torch.optim.Optimizer):
         for group in self.param_groups:
             train_mode = group['train_mode']
             momentum = group['momentum']
+            momentum = 1 - momentum
             if not train_mode:
                 for p in group['params']:
                     state = self.state[p]
@@ -128,6 +130,7 @@ class ScionScheduleFree(torch.optim.Optimizer):
         for group in self.param_groups:
             lr = group['lr']
             momentum = group['momentum']
+            momentum = 1 - momentum
             scale = group['scale']
             unconstrained = group['unconstrained']
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
@@ -167,7 +170,42 @@ class ScionScheduleFree(torch.optim.Optimizer):
                     y.add_(z, alpha=lr*(momentum*(1-ckp1)-1))
                     z.mul_(1-lr).add_(update, alpha=-lr)
                     
+                    
+class Scion(torch.optim.Optimizer):
+    def __init__(self, params, lr=1e-3, momentum=1.0, norm: str='Spectral', norm_kwargs: dict=None, scale=1.0, unconstrained=False):
+        if lr < 0.0:
+            raise ValueError(f"Invalid learning rate: {lr}")
+        if momentum < 0.0:
+            raise ValueError(f"Invalid momentum value: {momentum}")
+        defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained)
+        super().__init__(params, defaults)
 
+    def step(self):
+        for group in self.param_groups:
+            lr = group['lr']
+            momentum = group['momentum']
+            scale = group['scale']
+            unconstrained = group['unconstrained']
+            norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
+            for p in group['params']:
+                g = p.grad
+                if g is None:
+                    continue
+                state = self.state[p]
+
+                if momentum != 1:
+                    if 'momentum_buffer' not in state.keys():
+                        state['momentum_buffer'] = torch.zeros_like(g)
+                    buf = state['momentum_buffer']
+                    buf.mul_(1-momentum).add_(g, alpha=momentum)
+                    g = buf
+
+                update = scale * norm_backend.lmo(g)
+                if unconstrained:
+                    p.data.add_(update, alpha=-lr)  # Unconstrained Scion
+                else:
+                    p.data.mul_(1-lr).add_(update, alpha=-lr) # Scion
+                    
 
 # -----------------------------------------------------------------------------
 # PyTorch nn.Module definitions for the GPT-2 model
@@ -394,9 +432,9 @@ class Hyperparameters:
     device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
     num_iterations : int = 10000 # number of iterations to run
-    learning_rate : float = 0.0005
+    learning_rate : float = 0.00036
     warmup_iters : int = 0
-    warmdown_iters : int = 0 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
+    warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0
     # evaluation and logging hyperparams
     val_loss_every : int = 50 # every how many steps to evaluate val loss? 0 for only at the end
@@ -406,7 +444,7 @@ class Hyperparameters:
     n_head : int = 6 # set as n_embd/128 so head_dim is 128
     n_embd : int = 768
     unconstrained: bool = True
-    momentum: float = 0.98
+    momentum: float = 0.1
     scale : float = 50
     last_scale : float = 3000
 
@@ -460,23 +498,29 @@ raw_model = model.module # always contains the "raw" unwrapped model
 ctx = torch.amp.autocast(device_type='cuda', dtype=torch.bfloat16)
 
 # init the optimizer(s)
-optim_groups = [{
+optim_groups1 = [{
     'params': raw_model.transformer.h.parameters(), 
         'norm': 'Spectral', 
         'norm_kwargs': {'steps': 5}, 
         'scale': args.scale,
-}, {
+}]
+
+optim_groups2 = [{
     'params': raw_model.lm_head.parameters(), 
     'norm': 'Sign', 
     'norm_kwargs': {}, 
     'scale': args.last_scale,
-}
-]
-optimizer1 = ScionScheduleFree(optim_groups, lr=args.learning_rate, momentum=args.momentum, unconstrained=args.unconstrained)
-optimizers = [optimizer1]
+}]
+optimizer1 = ScionScheduleFree(optim_groups1, lr=args.learning_rate, momentum=args.momentum, unconstrained=args.unconstrained)
+optimizer2 = Scion(optim_groups2, lr=args.learning_rate, momentum=args.momentum, unconstrained=args.unconstrained)
+optimizers = [optimizer1, optimizer2]
 
 # learning rate decay scheduler (linear warmup and warmdown)
-def get_lr(it):
+def get_lr_int(it):
+        return 1
+        
+# learning rate decay scheduler (linear warmup and warmdown)
+def get_lr_ext(it):
     assert it <= args.num_iterations
     # 1) linear warmup for warmup_iters steps
     if it < args.warmup_iters:
@@ -488,7 +532,10 @@ def get_lr(it):
     else:
         decay_ratio = (args.num_iterations - it) / args.warmdown_iters
         return decay_ratio
-schedulers = [torch.optim.lr_scheduler.LambdaLR(opt, get_lr) for opt in optimizers]
+
+scheduler1 = torch.optim.lr_scheduler.LambdaLR(optimizer1, get_lr_int)
+scheduler2 = torch.optim.lr_scheduler.LambdaLR(optimizer2, get_lr_ext)
+schedulers = [scheduler1, scheduler2]
 
 # wandb logging
 config_keys = [k for k, v in vars(args).items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
@@ -541,7 +588,8 @@ for step in range(args.num_iterations + 1):
         # run validation batches
         model.eval()
         for opt in optimizers:
-            opt.eval()
+            if isinstance(opt, ScionScheduleFree):
+                opt.eval()
         val_loader.reset()
         val_loss = 0.0
         for _ in range(val_steps):
@@ -580,7 +628,8 @@ for step in range(args.num_iterations + 1):
     # --------------- TRAINING SECTION BEGIN -----------------
     model.train()
     for opt in optimizers:
-        opt.train()
+        if isinstance(opt, ScionScheduleFree):
+            opt.train()
     for i in range(1, train_accumulation_steps+1):
         # forward pass
         with ctx:
@@ -597,7 +646,7 @@ for step in range(args.num_iterations + 1):
             
     # wandb logging
     if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
-        lr = get_lr(step)    
+        lr = get_lr_int(step)    
         if wandb_log:
             wandb.log({
                 "iter": step,

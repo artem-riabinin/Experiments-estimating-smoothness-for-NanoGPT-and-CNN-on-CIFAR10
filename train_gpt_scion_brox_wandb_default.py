@@ -148,7 +148,7 @@ class ScionBrox(torch.optim.Optimizer):
                 wandb.log({"t_k": tk,})
    
         for group in self.param_groups:
-            lr = group['lr']
+            tk_real = group['lr']
             momentum = group['momentum']
             scale = group['scale']
             unconstrained = group['unconstrained']
@@ -173,8 +173,7 @@ class ScionBrox(torch.optim.Optimizer):
                     if wandb_log: 
                         wandb.log({"adaptive_lr": adaptive_lr,})
                         
-                tk = lr
-                lr = tk / torch.norm(p.data + update)
+                lr = tk_real / torch.norm(p.data + update)
 
                 if unconstrained:
                     p.data.add_(update, alpha=-lr)  # Unconstrained Scion

@@ -138,14 +138,16 @@ class ScionBrox(torch.optim.Optimizer):
         defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained, f_star=f_star)
         super().__init__(params, defaults)
 
-    def step(self, total_train_loss=None):
+    def step(self, total_train_loss=None, step=None, last_step=None):
+        all_grads = [p.grad for p in model.parameters() if p.grad is not None]
+        norm_grad = torch.norm(torch.cat([g.view(-1) for g in all_grads]))  
+        tk = (total_train_loss - f_star) / norm_grad ** 2
+        if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
+            if wandb_log: 
+                wandb.log({"t_k": tk,})
         for group in self.param_groups:
             f_star = group['f_star']
             lr = group['lr']
-            tk = lr
-            all_grads = [p.grad for p in group['params'] if p.grad is not None]
-            norm_grad = torch.norm(torch.cat([g.view(-1) for g in all_grads])) 
-            tk = (total_train_loss - f_star) / norm_grad
             momentum = group['momentum']
             scale = group['scale']
             unconstrained = group['unconstrained']
@@ -630,7 +632,7 @@ for step in range(args.num_iterations + 1):
     # step the optimizers and schedulers
     for opt, sched in zip(optimizers, schedulers):
         if isinstance(opt, ScionBrox):
-            opt.step(total_train_loss=total_train_loss)
+            opt.step(total_train_loss=total_train_loss, step, last_step)
         else:
             opt.step()
         sched.step()

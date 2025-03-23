@@ -140,18 +140,20 @@ class ScionBrox(torch.optim.Optimizer):
 
     def step(self, total_train_loss=None, step=None, last_step=None):
         f_star = self.param_groups[0]['f_star']
+        all_grads = [p.grad for p in model.parameters() if p.grad is not None]
+        norm_grad = torch.norm(torch.cat([g.view(-1) for g in all_grads]))
+        tk = (total_train_loss - f_star) / norm_grad ** 2
+        if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
+            if wandb_log: 
+                wandb.log({"t_k": tk,})
+   
         for group in self.param_groups:
             lr = group['lr']
             momentum = group['momentum']
             scale = group['scale']
             unconstrained = group['unconstrained']
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
-            all_grads = [p.grad for p in group['params'] if p.grad is not None]
-            norm_grad = torch.norm(torch.cat([g.view(-1) for g in all_grads])) 
-            tk = (total_train_loss - f_star) / norm_grad
-            if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
-                if wandb_log: 
-                    wandb.log({"t_k": tk,})
+
             for p in group['params']:
                 g = p.grad
                 if g is None:
@@ -167,10 +169,12 @@ class ScionBrox(torch.optim.Optimizer):
                     
                 update = scale * norm_backend.lmo(g)       
                 adaptive_lr = tk / torch.norm(p.data + update)
-                lr = adaptive_lr
                 if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
                     if wandb_log: 
                         wandb.log({"adaptive_lr": adaptive_lr,})
+                        
+                tk = lr
+                lr = tk / torch.norm(p.data + update)
 
                 if unconstrained:
                     p.data.add_(update, alpha=-lr)  # Unconstrained Scion
@@ -408,7 +412,7 @@ class Hyperparameters:
     device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
     num_iterations : int = 10000 # number of iterations to run
-    learning_rate_ext : float = 0.00036
+    learning_rate_ext : float = 1
     learning_rate_int : float = 1
     f_star: float = 3.24
     warmup_iters : int = 0
@@ -491,8 +495,8 @@ optim_groups2 = {
 }
 
 optimizer1 = ScionBrox([optim_groups1], lr=args.learning_rate_int, momentum=args.momentum, unconstrained=args.unconstrained, f_star=args.f_star)
-optimizer2 = Scion([optim_groups2], lr=args.learning_rate_ext, momentum=args.momentum, unconstrained=args.unconstrained)
-#optimizer2 = ScionBrox([optim_groups2], lr=args.learning_rate_ext, momentum=args.momentum, unconstrained=args.unconstrained, f_star=args.f_star)
+#optimizer2 = Scion([optim_groups2], lr=args.learning_rate_ext, momentum=args.momentum, unconstrained=args.unconstrained)
+optimizer2 = ScionBrox([optim_groups2], lr=args.learning_rate_ext, momentum=args.momentum, unconstrained=args.unconstrained, f_star=args.f_star)
 optimizers = [optimizer1, optimizer2]
 
 # learning rate decay scheduler (linear warmup and warmdown)

@@ -146,15 +146,16 @@ class ScionBrox(torch.optim.Optimizer):
             scale = group['scale']
             unconstrained = group['unconstrained']
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
+            all_grads = [p.grad for p in group['params'] if p.grad is not None]
+            norm_grad = torch.norm(torch.cat([g.view(-1) for g in all_grads])) 
+            tk = (total_train_loss - f_star) / norm_grad ** 2
+            if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
+                if wandb_log: 
+                    wandb.log({"t_k": tk,})
             for p in group['params']:
                 g = p.grad
                 if g is None:
                     continue
-                norm_grad = torch.norm(g)  
-                tk = (total_train_loss - f_star) / norm_grad ** 2
-                if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
-                    if wandb_log: 
-                        wandb.log({"t_k": tk,})
                 state = self.state[p]
 
                 if momentum != 1:

@@ -148,7 +148,7 @@ class ScionBrox(torch.optim.Optimizer):
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
             all_grads = [p.grad for p in group['params'] if p.grad is not None]
             norm_grad = torch.norm(torch.cat([g.view(-1) for g in all_grads])) 
-            tk = (total_train_loss - f_star) / norm_grad ** 2
+            tk = (total_train_loss - f_star) / norm_grad
             if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
                 if wandb_log: 
                     wandb.log({"t_k": tk,})

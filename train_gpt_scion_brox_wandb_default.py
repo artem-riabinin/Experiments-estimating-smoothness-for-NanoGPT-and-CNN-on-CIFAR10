@@ -139,6 +139,7 @@ class ScionBrox(torch.optim.Optimizer):
         super().__init__(params, defaults)
 
     def step(self, total_train_loss=None, step=None, last_step=None):
+        f_star = self.param_groups[0]['f_star']
         all_grads = [p.grad for p in model.parameters() if p.grad is not None]
         norm_grad = torch.norm(torch.cat([g.view(-1) for g in all_grads]))  
         tk = (total_train_loss - f_star) / norm_grad ** 2
@@ -146,7 +147,6 @@ class ScionBrox(torch.optim.Optimizer):
             if wandb_log: 
                 wandb.log({"t_k": tk,})
         for group in self.param_groups:
-            f_star = group['f_star']
             lr = group['lr']
             momentum = group['momentum']
             scale = group['scale']
@@ -168,6 +168,9 @@ class ScionBrox(torch.optim.Optimizer):
                 update = scale * norm_backend.lmo(g)       
                 adaptive_lr = tk / torch.norm(p.data + update)
                 lr = adaptive_lr
+                if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
+                    if wandb_log: 
+                        wandb.log({"adaptive_lr": adaptive_lr,})
 
                 if unconstrained:
                     p.data.add_(update, alpha=-lr)  # Unconstrained Scion

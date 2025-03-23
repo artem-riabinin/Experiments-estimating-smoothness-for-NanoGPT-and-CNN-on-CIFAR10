@@ -632,7 +632,7 @@ for step in range(args.num_iterations + 1):
     # step the optimizers and schedulers
     for opt, sched in zip(optimizers, schedulers):
         if isinstance(opt, ScionBrox):
-            opt.step(total_train_loss=total_train_loss, step, last_step)
+            opt.step(total_train_loss=total_train_loss, step=step, last_step=last_step)
         else:
             opt.step()
         sched.step()

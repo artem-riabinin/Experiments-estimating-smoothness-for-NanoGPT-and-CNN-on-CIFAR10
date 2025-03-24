@@ -173,17 +173,17 @@ class ScionBrox(torch.optim.Optimizer):
                     if wandb_log: 
                         wandb.log({"adaptive_lr": adaptive_lr,})
                         
-                lr = tk_real / torch.norm(p.data + update)
+                lr_new = tk_real / torch.norm(p.data + update)
 
                 if unconstrained:
-                    p.data.add_(update, alpha=-lr)  # Unconstrained Scion
+                    p.data.add_(update, alpha=-lr_new)  # Unconstrained Scion
                 else:
                     if torch.norm(p.data + update) <= tk:
                         if master_process:
                             print('no F---W')
                         p.data.copy_(-update)
                     else:
-                        p.data.mul_(1-lr).add_(update, alpha=-lr) # Scion
+                        p.data.mul_(1-lr_new).add_(update, alpha=-lr_new) # Scion
 
 
 # -----------------------------------------------------------------------------

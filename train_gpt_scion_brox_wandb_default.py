@@ -410,7 +410,7 @@ class Hyperparameters:
     batch_size : int = 8*64 # batch size, in sequences, across all devices
     device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
-    num_iterations : int = 2000 # number of iterations to run
+    num_iterations : int = 10000 # number of iterations to run
     learning_rate_ext : float = 1
     learning_rate_int : float = 1
     f_star: float = 3.24
@@ -427,7 +427,7 @@ class Hyperparameters:
     unconstrained: bool = False
     momentum: float = 0.1
     scale : float = 50
-    last_scale : float = 10000
+    last_scale : float = 3000
 
 from datargs import parse
 args = parse(Hyperparameters)

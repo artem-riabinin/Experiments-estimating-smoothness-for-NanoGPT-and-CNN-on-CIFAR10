@@ -427,7 +427,7 @@ class Hyperparameters:
     unconstrained: bool = False
     momentum: float = 0.1
     scale : float = 50
-    last_scale : float = 3000
+    last_scale : float = 10000
 
 from datargs import parse
 args = parse(Hyperparameters)

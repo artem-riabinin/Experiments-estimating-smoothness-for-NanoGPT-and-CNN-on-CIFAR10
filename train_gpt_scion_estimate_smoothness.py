@@ -559,7 +559,7 @@ for step in range(args.num_iterations + 1):
     for p in model.parameters():
         p.grad /= train_accumulation_steps
             
-    if master_process and step == 0:    
+    if master_process and (args.val_loss_every > 0 and (step+1) % args.val_loss_every == 0):    
         params_vector = []
         grads_vector = []
         for p in model.parameters():
@@ -568,21 +568,14 @@ for step in range(args.num_iterations + 1):
                 grads_vector.append(p.grad.view(-1))  
         params_vector = torch.cat(params_vector) 
         grads_vector = torch.cat(grads_vector)
+        print(step)
      
-    if master_process and step > 0:   
+    if master_process and step > 0 and (args.val_loss_every > 0 and step % args.val_loss_every == 0):   
         L_est = torch.norm(torch.cat([p.grad.view(-1) for p in model.parameters() if p.grad is not None]) - grads_vector) / torch.norm(torch.cat([p.data.view(-1) for p in model.parameters()]) - params_vector)
         norm_grad = torch.norm(torch.cat([p.grad.view(-1) for p in model.parameters() if p.grad is not None]))
-        params_vector = []
-        grads_vector = []
-        for p in model.parameters():
-            if p.grad is not None:  
-                params_vector.append(p.data.view(-1))  
-                grads_vector.append(p.grad.view(-1))  
-        params_vector = torch.cat(params_vector) 
-        grads_vector = torch.cat(grads_vector)
             
     # wandb logging
-    if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)) and step > 0:
+    if master_process and step > 0 and (args.val_loss_every > 0 and step % args.val_loss_every == 0):
         lr = get_lr(step)    
         if wandb_log:
             wandb.log({
@@ -611,11 +604,11 @@ for step in range(args.num_iterations + 1):
 
     #dist.all_reduce(train_loss, op=dist.ReduceOp.AVG) # all-reducing the training loss would be more correct in terms of logging, but slower
             
-    if master_process:
-        approx_time = training_time_ms + 1000 * (time.time() - t0)
-        print(f"step:{step+1}/{args.num_iterations} train_loss:{train_loss.item():.4f} train_time:{approx_time:.0f}ms step_avg:{approx_time/timed_steps:.2f}ms")
-        with open(logfile, "a") as f:
-            f.write(f"step:{step+1}/{args.num_iterations} train_loss:{train_loss.item():.4f} train_time:{approx_time:.0f}ms step_avg:{approx_time/timed_steps:.2f}ms\n")
+    #if master_process:
+    #    approx_time = training_time_ms + 1000 * (time.time() - t0)
+    #    print(f"step:{step+1}/{args.num_iterations} train_loss:{train_loss.item():.4f} train_time:{approx_time:.0f}ms step_avg:{approx_time/timed_steps:.2f}ms")
+    #    with open(logfile, "a") as f:
+    #        f.write(f"step:{step+1}/{args.num_iterations} train_loss:{train_loss.item():.4f} train_time:{approx_time:.0f}ms step_avg:{approx_time/timed_steps:.2f}ms\n")
 
 if master_process:
     print(f"peak memory consumption: {torch.cuda.max_memory_allocated() // 1024 // 1024} MiB")

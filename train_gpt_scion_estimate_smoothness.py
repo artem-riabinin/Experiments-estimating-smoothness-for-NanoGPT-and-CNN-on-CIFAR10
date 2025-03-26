@@ -568,7 +568,6 @@ for step in range(args.num_iterations + 1):
                 grads_vector.append(p.grad.view(-1))  
         params_vector = torch.cat(params_vector) 
         grads_vector = torch.cat(grads_vector)
-        print(step)
      
     if master_process and step > 0 and (args.val_loss_every > 0 and step % args.val_loss_every == 0):   
         L_est = torch.norm(torch.cat([p.grad.view(-1) for p in model.parameters() if p.grad is not None]) - grads_vector) / torch.norm(torch.cat([p.data.view(-1) for p in model.parameters()]) - params_vector)

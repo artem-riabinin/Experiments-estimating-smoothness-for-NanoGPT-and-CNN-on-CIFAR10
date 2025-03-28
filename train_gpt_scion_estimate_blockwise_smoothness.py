@@ -165,6 +165,11 @@ class Scion(torch.optim.Optimizer):
                             f"norm_grad ({self.iter_k}, {group['norm']}, {param_size}, {name})": norm_grad, 
                             "iter": step
                         })
+                        
+                    print(f'step:{step}/{args.num_iterations} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}')
+                    with open(logfile, "a") as f:
+                        f.write(f'step:{step}/{args.num_iterations} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}\n')
+                        
                     self.iter_k += 1
 
                 update = scale * norm_backend.lmo(g)
@@ -398,10 +403,10 @@ class Hyperparameters:
     batch_size : int = 8*64 # batch size, in sequences, across all devices
     device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
-    num_iterations : int = 10000 # number of iterations to run
+    num_iterations : int = 5001 # number of iterations to run
     learning_rate : float = 0.00036
     warmup_iters : int = 0
-    warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
+    warmdown_iters : int = 0 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0
     # evaluation and logging hyperparams
     val_loss_every : int = 50 # every how many steps to evaluate val loss? 0 for only at the end

@@ -23,7 +23,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # wandb logging
 wandb_log = True 
 wandb_project = 'nanogpt'
-wandb_run_name = 'nanogpt_Scion_estimate_blockwise_smoothness'
+wandb_run_name = 'nanogpt_unScion_estimate_blockwise_smoothness'
 
 # -----------------------------------------------------------------------------
 # Scion optimizer
@@ -148,7 +148,7 @@ class Scion(torch.optim.Optimizer):
                     
                 if master_process and (step > 0 and args.val_loss_every > 0 and step % args.val_loss_every == 0):
                     norm_params_diff = norm_backend.calculate_norm(p.data - self.params_vector[self.iter_k])
-                    print((p.data - self.params_vector[self.iter_k]))
+                    print(p.data)
                     norm_grad_diff = torch.dot(norm_backend.lmo(p.grad - self.grads_vector[self.iter_k]).flatten().to(torch.float32),  (p.grad - self.grads_vector[self.iter_k]).flatten()) 
                     norm_grad = torch.dot(norm_backend.lmo(p.grad).flatten().to(torch.float32), p.grad.flatten())
                     L_est = norm_grad_diff / norm_params_diff
@@ -399,7 +399,7 @@ class Hyperparameters:
     n_layer : int = 12
     n_head : int = 6 # set as n_embd/128 so head_dim is 128
     n_embd : int = 768
-    unconstrained: bool = False
+    unconstrained: bool = True
     momentum: float = 0.1
     scale : float = 50
     last_scale : float = 3000

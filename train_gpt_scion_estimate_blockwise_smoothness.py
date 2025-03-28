@@ -142,8 +142,8 @@ class Scion(torch.optim.Optimizer):
                     g = buf
                     
                 if master_process and (args.val_loss_every > 0 and (step+1) % args.val_loss_every == 0):
-                    params_vector.append(p.data)
-                    grads_vector.append(g)
+                    self.params_vector.append(p.data)
+                    self.grads_vector.append(g)
                     
                 if master_process and step > 0 and (args.val_loss_every > 0 and (step) % args.val_loss_every == 0):
                     norm_params_diff = norm_backend.calculate_norm(p.data - self.params_vector[self.iter_k])

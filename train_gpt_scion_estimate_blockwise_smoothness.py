@@ -146,10 +146,8 @@ class Scion(torch.optim.Optimizer):
                     self.grads_vector.append(g)
                     
                 if master_process and step > 0 and (args.val_loss_every > 0 and (step) % args.val_loss_every == 0):
-                    print(g.dtype)
-                    print(self.grads_vector[self.iter_k].dtype)
                     norm_params_diff = norm_backend.calculate_norm(p.data - self.params_vector[self.iter_k])
-                    norm_grad_diff = (-1) * torch.dot(norm_backend.lmo(g - self.grads_vector[self.iter_k]).flatten(), (g - self.grads_vector[self.iter_k]).flatten())    
+                    norm_grad_diff = (-1) * torch.dot(norm_backend.lmo(g - self.grads_vector[self.iter_k]).flatten().to(torch.float32),  (g - self.grads_vector[self.iter_k]).flatten()) 
                     norm_grad = (-1) * torch.dot(norm_backend.lmo(g).flatten(), g.flatten())
                     L_est = norm_grad_diff / norm_params_diff
                     self.iter_k += 1

@@ -146,6 +146,8 @@ class Scion(torch.optim.Optimizer):
                     self.grads_vector.append(g)
                     
                 if master_process and step > 0 and (args.val_loss_every > 0 and (step) % args.val_loss_every == 0):
+                    print(g.dtype)
+                    print(self.grads_vector[self.iter_k].dtype)
                     norm_params_diff = norm_backend.calculate_norm(p.data - self.params_vector[self.iter_k])
                     norm_grad_diff = (-1) * torch.dot(norm_backend.lmo(g - self.grads_vector[self.iter_k]).flatten(), (g - self.grads_vector[self.iter_k]).flatten())    
                     norm_grad = (-1) * torch.dot(norm_backend.lmo(g).flatten(), g.flatten())
@@ -391,7 +393,7 @@ class Hyperparameters:
     warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0
     # evaluation and logging hyperparams
-    val_loss_every : int = 50 # every how many steps to evaluate val loss? 0 for only at the end
+    val_loss_every : int = 10 # every how many steps to evaluate val loss? 0 for only at the end
     val_tokens : int = 10485760 # how many tokens of validation data? it's important to keep this fixed for consistent comparisons
     save_every : int = 0 # every how many steps to save the checkpoint? 0 for only at the end
     n_layer : int = 12

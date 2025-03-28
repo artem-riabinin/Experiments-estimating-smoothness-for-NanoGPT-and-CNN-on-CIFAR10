@@ -1,0 +1,605 @@
+1
+2025-03-26 20:43:54
+step:0/10000 val_loss:16.0362 train_time:296ms step_avg:nanms
+  2
+2025-03-26 20:45:17
+step:50/10000 val_loss:5.7658 train_time:40110ms step_avg:1002.75ms
+  3
+2025-03-26 20:45:19
+step:51/10000 L_estimated:0.2020 norm_grad:1.1570
+  4
+2025-03-26 20:46:13
+step:100/10000 val_loss:5.0819 train_time:90704ms step_avg:1007.83ms
+  5
+2025-03-26 20:46:15
+step:101/10000 L_estimated:0.1570 norm_grad:0.7769
+  6
+2025-03-26 20:47:09
+step:150/10000 val_loss:4.6357 train_time:141295ms step_avg:1009.25ms
+  7
+2025-03-26 20:47:11
+step:151/10000 L_estimated:0.1338 norm_grad:0.8429
+  8
+2025-03-26 20:48:05
+step:200/10000 val_loss:4.3432 train_time:191972ms step_avg:1010.38ms
+  9
+2025-03-26 20:48:07
+step:201/10000 L_estimated:0.1230 norm_grad:0.6584
+ 10
+2025-03-26 20:49:01
+step:250/10000 val_loss:4.2011 train_time:242533ms step_avg:1010.55ms
+ 11
+2025-03-26 20:49:03
+step:251/10000 L_estimated:0.1030 norm_grad:0.6551
+ 12
+2025-03-26 20:49:59
+step:300/10000 val_loss:4.1053 train_time:293106ms step_avg:1010.71ms
+ 13
+2025-03-26 20:49:59
+step:301/10000 L_estimated:0.1339 norm_grad:0.7230
+ 14
+2025-03-26 20:50:55
+step:350/10000 val_loss:4.0330 train_time:343622ms step_avg:1010.65ms
+ 15
+2025-03-26 20:50:55
+step:351/10000 L_estimated:0.1066 norm_grad:0.5529
+ 16
+2025-03-26 20:51:51
+step:400/10000 val_loss:3.9749 train_time:394205ms step_avg:1010.78ms
+ 17
+2025-03-26 20:51:51
+step:401/10000 L_estimated:0.1030 norm_grad:0.5939
+ 18
+2025-03-26 20:52:47
+step:450/10000 val_loss:3.9272 train_time:444679ms step_avg:1010.63ms
+ 19
+2025-03-26 20:52:47
+step:451/10000 L_estimated:0.0759 norm_grad:0.4748
+ 20
+2025-03-26 20:53:43
+step:500/10000 val_loss:3.8951 train_time:495197ms step_avg:1010.61ms
+ 21
+2025-03-26 20:53:43
+step:501/10000 L_estimated:0.0952 norm_grad:0.5474
+ 22
+2025-03-26 20:54:39
+step:550/10000 val_loss:3.8685 train_time:545683ms step_avg:1010.52ms
+ 23
+2025-03-26 20:54:39
+step:551/10000 L_estimated:0.0974 norm_grad:0.5108
+ 24
+2025-03-26 20:55:35
+step:600/10000 val_loss:3.8350 train_time:596284ms step_avg:1010.65ms
+ 25
+2025-03-26 20:55:35
+step:601/10000 L_estimated:0.0833 norm_grad:0.4547
+ 26
+2025-03-26 20:56:31
+step:650/10000 val_loss:3.8107 train_time:646775ms step_avg:1010.59ms
+ 27
+2025-03-26 20:56:31
+step:651/10000 L_estimated:0.0752 norm_grad:0.4430
+ 28
+2025-03-26 20:57:27
+step:700/10000 val_loss:3.7876 train_time:697283ms step_avg:1010.56ms
+ 29
+2025-03-26 20:57:27
+step:701/10000 L_estimated:0.0772 norm_grad:0.4250
+ 30
+2025-03-26 20:58:23
+step:750/10000 val_loss:3.7737 train_time:747751ms step_avg:1010.47ms
+ 31
+2025-03-26 20:58:25
+step:751/10000 L_estimated:0.0990 norm_grad:0.5360
+ 32
+2025-03-26 20:59:19
+step:800/10000 val_loss:3.7574 train_time:798313ms step_avg:1010.52ms
+ 33
+2025-03-26 20:59:21
+step:801/10000 L_estimated:0.0754 norm_grad:0.4209
+ 34
+2025-03-26 21:00:15
+step:850/10000 val_loss:3.7402 train_time:848777ms step_avg:1010.45ms
+ 35
+2025-03-26 21:00:17
+step:851/10000 L_estimated:0.0925 norm_grad:0.5528
+ 36
+2025-03-26 21:01:11
+step:900/10000 val_loss:3.7271 train_time:899267ms step_avg:1010.41ms
+ 37
+2025-03-26 21:01:13
+step:901/10000 L_estimated:0.0786 norm_grad:0.5472
+ 38
+2025-03-26 21:02:07
+step:950/10000 val_loss:3.7122 train_time:949855ms step_avg:1010.48ms
+ 39
+2025-03-26 21:02:09
+step:951/10000 L_estimated:0.0601 norm_grad:0.3766
+ 40
+2025-03-26 21:03:03
+step:1000/10000 val_loss:3.7003 train_time:1000511ms step_avg:1010.62ms
+ 41
+2025-03-26 21:03:05
+step:1001/10000 L_estimated:0.0800 norm_grad:0.5019
+
+42
+2025-03-26 21:04:01
+step:1050/10000 val_loss:3.6841 train_time:1051132ms step_avg:1010.70ms
+ 43
+2025-03-26 21:04:01
+step:1051/10000 L_estimated:0.0760 norm_grad:0.4215
+ 44
+2025-03-26 21:04:57
+step:1100/10000 val_loss:3.6775 train_time:1101739ms step_avg:1010.77ms
+ 45
+2025-03-26 21:04:57
+step:1101/10000 L_estimated:0.0698 norm_grad:0.4297
+ 46
+2025-03-26 21:05:53
+step:1150/10000 val_loss:3.6674 train_time:1152423ms step_avg:1010.90ms
+ 47
+2025-03-26 21:05:53
+step:1151/10000 L_estimated:0.0653 norm_grad:0.3339
+ 48
+2025-03-26 21:06:49
+step:1200/10000 val_loss:3.6571 train_time:1203297ms step_avg:1011.17ms
+ 49
+2025-03-26 21:06:51
+step:1201/10000 L_estimated:0.0693 norm_grad:0.4052
+ 50
+2025-03-26 21:07:45
+step:1250/10000 val_loss:3.6499 train_time:1254019ms step_avg:1011.31ms
+ 51
+2025-03-26 21:07:47
+step:1251/10000 L_estimated:0.0837 norm_grad:0.4465
+ 52
+2025-03-26 21:08:41
+step:1300/10000 val_loss:3.6434 train_time:1304600ms step_avg:1011.32ms
+ 53
+2025-03-26 21:08:43
+step:1301/10000 L_estimated:0.0565 norm_grad:0.4075
+ 54
+2025-03-26 21:09:37
+step:1350/10000 val_loss:3.6339 train_time:1355182ms step_avg:1011.33ms
+ 55
+2025-03-26 21:09:39
+step:1351/10000 L_estimated:0.0749 norm_grad:0.4157
+ 56
+2025-03-26 21:10:33
+step:1400/10000 val_loss:3.6249 train_time:1405741ms step_avg:1011.32ms
+ 57
+2025-03-26 21:10:35
+step:1401/10000 L_estimated:0.0797 norm_grad:0.4145
+ 58
+2025-03-26 21:11:31
+step:1450/10000 val_loss:3.6185 train_time:1456364ms step_avg:1011.36ms
+ 59
+2025-03-26 21:11:31
+step:1451/10000 L_estimated:0.0678 norm_grad:0.3306
+ 60
+2025-03-26 21:12:27
+step:1500/10000 val_loss:3.6123 train_time:1507018ms step_avg:1011.42ms
+ 61
+2025-03-26 21:12:27
+step:1501/10000 L_estimated:0.0641 norm_grad:0.3384
+ 62
+2025-03-26 21:13:23
+step:1550/10000 val_loss:3.6078 train_time:1557671ms step_avg:1011.47ms
+ 63
+2025-03-26 21:13:23
+step:1551/10000 L_estimated:0.0647 norm_grad:0.4072
+ 64
+2025-03-26 21:14:19
+step:1600/10000 val_loss:3.6008 train_time:1608180ms step_avg:1011.43ms
+ 65
+2025-03-26 21:14:19
+step:1601/10000 L_estimated:0.0655 norm_grad:0.4131
+ 66
+2025-03-26 21:15:15
+step:1650/10000 val_loss:3.5917 train_time:1658637ms step_avg:1011.36ms
+ 67
+2025-03-26 21:15:15
+step:1651/10000 L_estimated:0.0664 norm_grad:0.3949
+ 68
+2025-03-26 21:16:11
+step:1700/10000 val_loss:3.5888 train_time:1709132ms step_avg:1011.32ms
+ 69
+2025-03-26 21:16:13
+step:1701/10000 L_estimated:0.0642 norm_grad:0.3829
+ 70
+2025-03-26 21:17:07
+step:1750/10000 val_loss:3.5805 train_time:1759668ms step_avg:1011.30ms
+ 71
+2025-03-26 21:17:07
+step:1751/10000 L_estimated:0.0577 norm_grad:0.3044
+ 72
+2025-03-26 21:18:03
+step:1800/10000 val_loss:3.5777 train_time:1810144ms step_avg:1011.25ms
+ 73
+2025-03-26 21:18:03
+step:1801/10000 L_estimated:0.0621 norm_grad:0.3720
+ 74
+2025-03-26 21:18:59
+step:1850/10000 val_loss:3.5715 train_time:1860645ms step_avg:1011.22ms
+ 75
+2025-03-26 21:19:01
+step:1851/10000 L_estimated:0.0842 norm_grad:0.5155
+ 76
+2025-03-26 21:19:55
+step:1900/10000 val_loss:3.5693 train_time:1911198ms step_avg:1011.22ms
+ 77
+2025-03-26 21:19:57
+step:1901/10000 L_estimated:0.0862 norm_grad:0.5008
+ 78
+2025-03-26 21:20:51
+step:1950/10000 val_loss:3.5636 train_time:1961788ms step_avg:1011.23ms
+ 79
+2025-03-26 21:20:53
+step:1951/10000 L_estimated:0.0605 norm_grad:0.3415
+ 80
+2025-03-26 21:21:47
+step:2000/10000 val_loss:3.5595 train_time:2012359ms step_avg:1011.24ms
+ 81
+2025-03-26 21:21:49
+step:2001/10000 L_estimated:0.0566 norm_grad:0.3412
+82
+2025-03-26 21:22:43
+step:2050/10000 val_loss:3.5579 train_time:2062911ms step_avg:1011.23ms
+ 83
+2025-03-26 21:22:45
+step:2051/10000 L_estimated:0.0483 norm_grad:0.3297
+ 84
+2025-03-26 21:23:39
+step:2100/10000 val_loss:3.5521 train_time:2113560ms step_avg:1011.27ms
+ 85
+2025-03-26 21:23:41
+step:2101/10000 L_estimated:0.0644 norm_grad:0.3481
+ 86
+2025-03-26 21:24:37
+step:2150/10000 val_loss:3.5481 train_time:2164145ms step_avg:1011.28ms
+ 87
+2025-03-26 21:24:37
+step:2151/10000 L_estimated:0.0620 norm_grad:0.3490
+ 88
+2025-03-26 21:25:33
+step:2200/10000 val_loss:3.5450 train_time:2214727ms step_avg:1011.29ms
+ 89
+2025-03-26 21:25:33
+step:2201/10000 L_estimated:0.0426 norm_grad:0.3026
+ 90
+2025-03-26 21:26:29
+step:2250/10000 val_loss:3.5461 train_time:2265225ms step_avg:1011.26ms
+ 91
+2025-03-26 21:26:29
+step:2251/10000 L_estimated:0.0534 norm_grad:0.3244
+ 92
+2025-03-26 21:27:25
+step:2300/10000 val_loss:3.5433 train_time:2315774ms step_avg:1011.26ms
+ 93
+2025-03-26 21:27:25
+step:2301/10000 L_estimated:0.0503 norm_grad:0.3799
+ 94
+2025-03-26 21:28:21
+step:2350/10000 val_loss:3.5397 train_time:2366230ms step_avg:1011.21ms
+ 95
+2025-03-26 21:28:21
+step:2351/10000 L_estimated:0.0588 norm_grad:0.3855
+ 96
+2025-03-26 21:29:17
+step:2400/10000 val_loss:3.5396 train_time:2416727ms step_avg:1011.18ms
+ 97
+2025-03-26 21:29:17
+step:2401/10000 L_estimated:0.0692 norm_grad:0.3989
+ 98
+2025-03-26 21:30:13
+step:2450/10000 val_loss:3.5348 train_time:2467213ms step_avg:1011.15ms
+ 99
+2025-03-26 21:30:13
+step:2451/10000 L_estimated:0.0584 norm_grad:0.3786
+100
+2025-03-26 21:31:09
+step:2500/10000 val_loss:3.5315 train_time:2517782ms step_avg:1011.16ms
+101
+2025-03-26 21:31:09
+step:2501/10000 L_estimated:0.0615 norm_grad:0.3058
+102
+2025-03-26 21:32:05
+step:2550/10000 val_loss:3.5304 train_time:2568250ms step_avg:1011.12ms
+103
+2025-03-26 21:32:05
+step:2551/10000 L_estimated:0.0547 norm_grad:0.3742
+104
+2025-03-26 21:33:01
+step:2600/10000 val_loss:3.5249 train_time:2618722ms step_avg:1011.09ms
+105
+2025-03-26 21:33:01
+step:2601/10000 L_estimated:0.0499 norm_grad:0.3631
+106
+2025-03-26 21:33:57
+step:2650/10000 val_loss:3.5276 train_time:2669158ms step_avg:1011.04ms
+107
+2025-03-26 21:33:57
+step:2651/10000 L_estimated:0.0536 norm_grad:0.3298
+108
+2025-03-26 21:34:53
+step:2700/10000 val_loss:3.5233 train_time:2719696ms step_avg:1011.04ms
+109
+2025-03-26 21:34:55
+step:2701/10000 L_estimated:0.0567 norm_grad:0.3347
+110
+2025-03-26 21:35:49
+step:2750/10000 val_loss:3.5192 train_time:2770148ms step_avg:1011.00ms
+111
+2025-03-26 21:35:51
+step:2751/10000 L_estimated:0.0552 norm_grad:0.3318
+112
+2025-03-26 21:36:45
+step:2800/10000 val_loss:3.5187 train_time:2820625ms step_avg:1010.98ms
+113
+2025-03-26 21:36:47
+step:2801/10000 L_estimated:0.0600 norm_grad:0.3553
+114
+2025-03-26 21:37:41
+step:2850/10000 val_loss:3.5165 train_time:2871078ms step_avg:1010.94ms
+115
+2025-03-26 21:37:43
+step:2851/10000 L_estimated:0.0614 norm_grad:0.3214
+116
+2025-03-26 21:38:37
+step:2900/10000 val_loss:3.5172 train_time:2921595ms step_avg:1010.93ms
+117
+2025-03-26 21:38:39
+step:2901/10000 L_estimated:0.0645 norm_grad:0.3907
+118
+2025-03-26 21:39:33
+step:2950/10000 val_loss:3.5123 train_time:2972044ms step_avg:1010.90ms
+119
+2025-03-26 21:39:35
+step:2951/10000 L_estimated:0.0498 norm_grad:0.3444
+120
+2025-03-26 21:40:29
+step:3000/10000 val_loss:3.5128 train_time:3022520ms step_avg:1010.88ms
+121
+2025-03-26 21:40:31
+step:3001/10000 L_estimated:0.0617 norm_grad:0.3946
+122
+2025-03-26 21:41:25
+step:3050/10000 val_loss:3.5097 train_time:3073058ms step_avg:1010.87ms
+123
+2025-03-26 21:41:27
+step:3051/10000 L_estimated:0.0528 norm_grad:0.3776
+124
+2025-03-26 21:42:21
+step:3100/10000 val_loss:3.5054 train_time:3123526ms step_avg:1010.85ms
+125
+2025-03-26 21:42:23
+step:3101/10000 L_estimated:0.0557 norm_grad:0.3990
+126
+2025-03-26 21:43:17
+step:3150/10000 val_loss:3.5064 train_time:3173988ms step_avg:1010.82ms
+127
+2025-03-26 21:43:19
+step:3151/10000 L_estimated:0.0748 norm_grad:0.4670
+128
+2025-03-26 21:44:13
+step:3200/10000 val_loss:3.5041 train_time:3224450ms step_avg:1010.80ms
+129
+2025-03-26 21:44:15
+step:3201/10000 L_estimated:0.0593 norm_grad:0.4438
+130
+2025-03-26 21:45:09
+step:3250/10000 val_loss:3.5017 train_time:3274968ms step_avg:1010.79ms
+131
+2025-03-26 21:45:11
+step:3251/10000 L_estimated:0.0460 norm_grad:0.3216
+132
+2025-03-26 21:46:05
+step:3300/10000 val_loss:3.5001 train_time:3325447ms step_avg:1010.77ms
+133
+2025-03-26 21:46:07
+step:3301/10000 L_estimated:0.0553 norm_grad:0.4318
+134
+2025-03-26 21:47:01
+step:3350/10000 val_loss:3.4975 train_time:3375907ms step_avg:1010.75ms
+135
+2025-03-26 21:47:03
+step:3351/10000 L_estimated:0.0623 norm_grad:0.3029
+136
+2025-03-26 21:47:57
+step:3400/10000 val_loss:3.4967 train_time:3426376ms step_avg:1010.73ms
+137
+2025-03-26 21:47:59
+step:3401/10000 L_estimated:0.0464 norm_grad:0.3319
+138
+2025-03-26 21:48:53
+step:3450/10000 val_loss:3.4936 train_time:3476887ms step_avg:1010.72ms
+139
+2025-03-26 21:48:55
+step:3451/10000 L_estimated:0.0466 norm_grad:0.3337
+140
+2025-03-26 21:49:49
+step:3500/10000 val_loss:3.4919 train_time:3527347ms step_avg:1010.70ms
+141
+2025-03-26 21:49:51
+step:3501/10000 L_estimated:0.0601 norm_grad:0.3091
+142
+2025-03-26 21:50:47
+step:3550/10000 val_loss:3.4910 train_time:3577778ms step_avg:1010.67ms
+143
+2025-03-26 21:50:47
+step:3551/10000 L_estimated:0.0610 norm_grad:0.3612
+144
+2025-03-26 21:51:43
+step:3600/10000 val_loss:3.4946 train_time:3628242ms step_avg:1010.65ms
+145
+2025-03-26 21:51:43
+step:3601/10000 L_estimated:0.0573 norm_grad:0.3444
+146
+2025-03-26 21:52:39
+step:3650/10000 val_loss:3.4880 train_time:3678738ms step_avg:1010.64ms
+147
+2025-03-26 21:52:39
+step:3651/10000 L_estimated:0.0515 norm_grad:0.3214
+148
+2025-03-26 21:53:35
+step:3700/10000 val_loss:3.4898 train_time:3729217ms step_avg:1010.63ms
+149
+2025-03-26 21:53:35
+step:3701/10000 L_estimated:0.0578 norm_grad:0.3537
+150
+2025-03-26 21:54:31
+step:3750/10000 val_loss:3.4853 train_time:3779654ms step_avg:1010.60ms
+151
+2025-03-26 21:54:31
+step:3751/10000 L_estimated:0.0449 norm_grad:0.3296
+152
+2025-03-26 21:55:27
+step:3800/10000 val_loss:3.4884 train_time:3830125ms step_avg:1010.59ms
+153
+2025-03-26 21:55:27
+step:3801/10000 L_estimated:0.0482 norm_grad:0.2917
+154
+2025-03-26 21:56:23
+step:3850/10000 val_loss:3.4877 train_time:3880644ms step_avg:1010.58ms
+155
+2025-03-26 21:56:23
+step:3851/10000 L_estimated:0.0615 norm_grad:0.4350
+156
+2025-03-26 21:57:19
+step:3900/10000 val_loss:3.4827 train_time:3931114ms step_avg:1010.57ms
+157
+2025-03-26 21:57:19
+step:3901/10000 L_estimated:0.0504 norm_grad:0.3344
+158
+2025-03-26 21:58:15
+step:3950/10000 val_loss:3.4849 train_time:3981565ms step_avg:1010.55ms
+159
+2025-03-26 21:58:15
+step:3951/10000 L_estimated:0.0477 norm_grad:0.3005
+160
+2025-03-26 21:59:11
+step:4000/10000 val_loss:3.4867 train_time:4032041ms step_avg:1010.54ms
+161
+2025-03-26 21:59:11
+step:4001/10000 L_estimated:0.0572 norm_grad:0.4370
+
+162
+2025-03-26 22:00:07
+step:4050/10000 val_loss:3.4803 train_time:4082564ms step_avg:1010.54ms
+163
+2025-03-26 22:00:07
+step:4051/10000 L_estimated:0.0637 norm_grad:0.3314
+164
+2025-03-26 22:01:03
+step:4100/10000 val_loss:3.4775 train_time:4133018ms step_avg:1010.52ms
+165
+2025-03-26 22:01:03
+step:4101/10000 L_estimated:0.0541 norm_grad:0.3230
+166
+2025-03-26 22:01:59
+step:4150/10000 val_loss:3.4803 train_time:4183459ms step_avg:1010.50ms
+167
+2025-03-26 22:01:59
+step:4151/10000 L_estimated:0.0575 norm_grad:0.3506
+168
+2025-03-26 22:02:55
+step:4200/10000 val_loss:3.4793 train_time:4233994ms step_avg:1010.50ms
+169
+2025-03-26 22:02:55
+step:4201/10000 L_estimated:0.0609 norm_grad:0.3599
+170
+2025-03-26 22:03:51
+step:4250/10000 val_loss:3.4785 train_time:4284432ms step_avg:1010.48ms
+171
+2025-03-26 22:03:51
+step:4251/10000 L_estimated:0.0508 norm_grad:0.3351
+172
+2025-03-26 22:04:47
+step:4300/10000 val_loss:3.4774 train_time:4334872ms step_avg:1010.46ms
+173
+2025-03-26 22:04:47
+step:4301/10000 L_estimated:0.0650 norm_grad:0.3764
+174
+2025-03-26 22:05:43
+step:4350/10000 val_loss:3.4782 train_time:4385291ms step_avg:1010.44ms
+175
+2025-03-26 22:05:43
+step:4351/10000 L_estimated:0.0573 norm_grad:0.3434
+176
+2025-03-26 22:06:39
+step:4400/10000 val_loss:3.4770 train_time:4435818ms step_avg:1010.44ms
+177
+2025-03-26 22:06:39
+step:4401/10000 L_estimated:0.0592 norm_grad:0.3712
+178
+2025-03-26 22:07:35
+step:4450/10000 val_loss:3.4769 train_time:4486252ms step_avg:1010.42ms
+179
+2025-03-26 22:07:35
+step:4451/10000 L_estimated:0.0741 norm_grad:0.3774
+180
+2025-03-26 22:08:31
+step:4500/10000 val_loss:3.4749 train_time:4536761ms step_avg:1010.41ms
+181
+2025-03-26 22:08:33
+step:4501/10000 L_estimated:0.0535 norm_grad:0.3490
+182
+2025-03-26 22:09:27
+step:4550/10000 val_loss:3.4725 train_time:4587254ms step_avg:1010.41ms
+183
+2025-03-26 22:09:29
+step:4551/10000 L_estimated:0.0592 norm_grad:0.3579
+184
+2025-03-26 22:10:23
+step:4600/10000 val_loss:3.4711 train_time:4637855ms step_avg:1010.43ms
+185
+2025-03-26 22:10:25
+step:4601/10000 L_estimated:0.0599 norm_grad:0.3804
+186
+2025-03-26 22:11:19
+step:4650/10000 val_loss:3.4721 train_time:4688355ms step_avg:1010.42ms
+187
+2025-03-26 22:11:21
+step:4651/10000 L_estimated:0.0666 norm_grad:0.4715
+188
+2025-03-26 22:12:16
+step:4700/10000 val_loss:3.4678 train_time:4738892ms step_avg:1010.42ms
+189
+2025-03-26 22:12:18
+step:4701/10000 L_estimated:0.0653 norm_grad:0.3407
+190
+2025-03-26 22:13:12
+step:4750/10000 val_loss:3.4702 train_time:4789359ms step_avg:1010.41ms
+191
+2025-03-26 22:13:14
+step:4751/10000 L_estimated:0.0489 norm_grad:0.3414
+192
+2025-03-26 22:14:10
+step:4800/10000 val_loss:3.4670 train_time:4839921ms step_avg:1010.42ms
+193
+2025-03-26 22:14:10
+step:4801/10000 L_estimated:0.0668 norm_grad:0.4067
+194
+2025-03-26 22:15:06
+step:4850/10000 val_loss:3.4678 train_time:4890379ms step_avg:1010.41ms
+195
+2025-03-26 22:15:06
+step:4851/10000 L_estimated:0.0458 norm_grad:0.2922
+196
+2025-03-26 22:16:02
+step:4900/10000 val_loss:3.4649 train_time:4940860ms step_avg:1010.40ms
+197
+2025-03-26 22:16:02
+step:4901/10000 L_estimated:0.0577 norm_grad:0.4252
+198
+2025-03-26 22:16:58
+step:4950/10000 val_loss:3.4673 train_time:4991312ms step_avg:1010.39ms
+199
+2025-03-26 22:16:58
+step:4951/10000 L_estimated:0.0521 norm_grad:0.3517
+200
+2025-03-26 22:17:54
+step:5000/10000 val_loss:3.4637 train_time:5041849ms step_avg:1010.39ms
+201
+2025-03-26 22:17:54
+step:5001/10000 L_estimated:0.0447 norm_grad:0.2905

@@ -23,7 +23,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # wandb logging
 wandb_log = True 
 wandb_project = 'nanogpt'
-wandb_run_name = 'nanogpt_Scion_estimate_smoothness'
+wandb_run_name = 'nanogpt_Scion_estimate_blockwise_smoothness'
 
 # -----------------------------------------------------------------------------
 # Scion optimizer
@@ -76,6 +76,12 @@ class Spectral(Norm):
         d_out, d_in = g.shape
         g *= (d_out / d_in)**0.5
         return g
+        
+    def calculate_norm(self, p):
+        norm = torch.linalg.norm(p, ord=2)
+        d_out, d_in = g.shape
+        norm *= (d_in / d_out)**0.5
+        return norm
 
 
 class Sign(Norm):
@@ -85,6 +91,10 @@ class Sign(Norm):
     def lmo(self, g):
         out_channels, in_channels = g.shape     # in_channels=768
         return (1/in_channels)*torch.sign(g)    
+        
+    def calculate_norm(self, p):
+        out_channels, in_channels = p.shape     # in_channels=768
+        return (in_channels)*torch.max(torch.abs(p))
 
 
 norm_dict = {
@@ -103,6 +113,10 @@ class Scion(torch.optim.Optimizer):
         super().__init__(params, defaults)
 
     def step(self, step):
+        if master_process and (args.val_loss_every > 0 and (step+1) % args.val_loss_every == 0):
+            params_vector = []
+            grads_vector = []
+            iter_k = 0
         for group in self.param_groups:
             lr = group['lr']
             momentum = group['momentum']
@@ -121,6 +135,19 @@ class Scion(torch.optim.Optimizer):
                     buf = state['momentum_buffer']
                     buf.mul_(1-momentum).add_(g, alpha=momentum)
                     g = buf
+                    
+                if master_process and (args.val_loss_every > 0 and (step+1) % args.val_loss_every == 0):
+                    params_vector.append(p.data)
+                    grads_vector.append(g)
+                    
+                if master_process and step > 0 and (args.val_loss_every > 0 and (step) % args.val_loss_every == 0):
+                    norm_params_diff = norm_backend.calculate_norm(p.data - params_vector[iter_k])
+                    norm_grad_diff = (-1) * torch.dot(norm_backend.lmo(g - grads_vector[iter_k]).flatten(), (g - grads_vector[iter_k]).flatten())    
+                    norm_grad = (-1) * torch.dot(norm_backend.lmo(g).flatten(), g.flatten())
+                    L_est = norm_grad_diff / norm_params_diff
+                    iter_k += 1
+                    if wandb_log: 
+                        wandb.log({"L_estimated": L_est, "norm_grad": norm_grad, "step:", step})
 
                 update = scale * norm_backend.lmo(g)
                 if unconstrained:
@@ -553,36 +580,6 @@ for step in range(args.num_iterations + 1):
             
     for p in model.parameters():
         p.grad /= train_accumulation_steps
-            
-    if master_process and (args.val_loss_every > 0 and (step+1) % args.val_loss_every == 0):    
-        params_vector = []
-        grads_vector = []
-        for p in model.parameters():
-            if p.grad is not None:  
-                params_vector.append(p.data.view(-1))  
-                grads_vector.append(p.grad.view(-1))  
-        params_vector = torch.cat(params_vector) 
-        grads_vector = torch.cat(grads_vector)
-     
-    if master_process and step > 0 and (args.val_loss_every > 0 and step % args.val_loss_every == 0):   
-        L_est = torch.norm(torch.cat([p.grad.view(-1) for p in model.parameters() if p.grad is not None]) - grads_vector) / torch.norm(torch.cat([p.data.view(-1) for p in model.parameters()]) - params_vector)
-        norm_grad = torch.norm(torch.cat([p.grad.view(-1) for p in model.parameters() if p.grad is not None]))
-            
-    # wandb logging
-    if master_process and step > 0 and (args.val_loss_every > 0 and step % args.val_loss_every == 0):
-        lr = get_lr(step)    
-        if wandb_log:
-            wandb.log({
-                "iter": step,
-                "train/loss": train_loss,
-                "val/loss": val_loss,
-                "lr": lr,
-                "L_estimated": L_est,
-                "norm_grad": norm_grad,
-            })
-        print(f"step:{step+1}/{args.num_iterations} L_estimated:{L_est.item():.4f} norm_grad:{norm_grad.item():.4f}")
-        with open(logfile, "a") as f:
-            f.write(f"step:{step+1}/{args.num_iterations} L_estimated:{L_est.item():.4f} norm_grad:{norm_grad.item():.4f}\n")
             
     if last_step:
         break

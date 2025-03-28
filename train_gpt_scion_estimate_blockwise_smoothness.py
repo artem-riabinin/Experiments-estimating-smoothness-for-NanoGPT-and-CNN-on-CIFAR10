@@ -79,7 +79,7 @@ class Spectral(Norm):
         
     def calculate_norm(self, p):
         norm = torch.linalg.norm(p, ord=2)
-        d_out, d_in = g.shape
+        d_out, d_in = p.shape
         norm *= (d_in / d_out)**0.5
         return norm
 

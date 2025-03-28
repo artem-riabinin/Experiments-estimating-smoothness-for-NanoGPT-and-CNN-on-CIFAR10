@@ -130,12 +130,12 @@ class Scion(torch.optim.Optimizer):
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
             for p in group['params']:
             
-                if master_process:
+                if master_process and (step > 0 and args.val_loss_every > 0 and step % args.val_loss_every == 0):
                     name = None
                     for param_name, param in model.named_parameters():
-                    if param is p:
-                        name = param_name
-                        break
+                        if param is p:
+                            name = param_name
+                            break
             
                 if master_process and (args.val_loss_every > 0 and (step+1) % args.val_loss_every == 0):
                     self.params_vector.append(p.data.clone())

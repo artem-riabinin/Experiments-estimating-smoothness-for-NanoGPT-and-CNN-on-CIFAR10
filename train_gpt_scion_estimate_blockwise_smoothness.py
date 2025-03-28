@@ -109,17 +109,19 @@ class Scion(torch.optim.Optimizer):
             raise ValueError(f"Invalid learning rate: {lr}")
         if momentum < 0.0:
             raise ValueError(f"Invalid momentum value: {momentum}")
+            
+        self.params_vector = []  
+        self.grads_vector = []  
+        self.iter_k = 0
+            
         defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained)
         super().__init__(params, defaults)
 
     def step(self, step):
-        global params_vector
-        global grads_vector
-        global iter_k 
         if master_process and (args.val_loss_every > 0 and (step+1) % args.val_loss_every == 0):
-            params_vector = []
-            grads_vector = []
-            iter_k = 0
+            self.params_vector = []
+            self.grads_vector = []
+            self.iter_k = 0
         for group in self.param_groups:
             lr = group['lr']
             momentum = group['momentum']
@@ -144,11 +146,11 @@ class Scion(torch.optim.Optimizer):
                     grads_vector.append(g)
                     
                 if master_process and step > 0 and (args.val_loss_every > 0 and (step) % args.val_loss_every == 0):
-                    norm_params_diff = norm_backend.calculate_norm(p.data - params_vector[iter_k])
-                    norm_grad_diff = (-1) * torch.dot(norm_backend.lmo(g - grads_vector[iter_k]).flatten(), (g - grads_vector[iter_k]).flatten())    
+                    norm_params_diff = norm_backend.calculate_norm(p.data - self.params_vector[self.iter_k])
+                    norm_grad_diff = (-1) * torch.dot(norm_backend.lmo(g - self.grads_vector[self.iter_k]).flatten(), (g - self.grads_vector[self.iter_k]).flatten())    
                     norm_grad = (-1) * torch.dot(norm_backend.lmo(g).flatten(), g.flatten())
                     L_est = norm_grad_diff / norm_params_diff
-                    iter_k += 1
+                    self.iter_k += 1
                     if wandb_log: 
                         wandb.log({"L_estimated": L_est, "norm_grad": norm_grad, "iter": step})
 

@@ -143,16 +143,16 @@ class Scion(torch.optim.Optimizer):
                     
                 if master_process and (args.val_loss_every > 0 and (step+1) % args.val_loss_every == 0):
                     self.params_vector.append(p.data)
-                    self.grads_vector.append(g)
+                    self.grads_vector.append(p.grad)
                     
                 if master_process and step > 0 and (args.val_loss_every > 0 and (step) % args.val_loss_every == 0):
                     norm_params_diff = norm_backend.calculate_norm(p.data - self.params_vector[self.iter_k])
-                    norm_grad_diff = (-1) * torch.dot(norm_backend.lmo(g - self.grads_vector[self.iter_k]).flatten().to(torch.float32),  (g - self.grads_vector[self.iter_k]).flatten()) 
-                    norm_grad = (-1) * torch.dot(norm_backend.lmo(g).flatten().to(torch.float32), g.flatten())
+                    norm_grad_diff = torch.dot(norm_backend.lmo(p.grad - self.grads_vector[self.iter_k]).flatten().to(torch.float32),  (p.grad - self.grads_vector[self.iter_k]).flatten()) 
+                    norm_grad = torch.dot(norm_backend.lmo(p.grad).flatten().to(torch.float32), p.grad.flatten())
                     L_est = norm_grad_diff / norm_params_diff
-                    self.iter_k += 1
                     if wandb_log: 
-                        wandb.log({"L_estimated": L_est, "norm_grad": norm_grad, "iter": step})
+                        wandb.log({f"L_estimated ({self.iter_k})": L_est, f"norm_grad ({self.iter_k})": norm_grad, "iter": step})
+                    self.iter_k += 1
 
                 update = scale * norm_backend.lmo(g)
                 if unconstrained:

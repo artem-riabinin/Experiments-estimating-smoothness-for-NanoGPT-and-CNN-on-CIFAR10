@@ -148,12 +148,15 @@ class Scion(torch.optim.Optimizer):
                     
                 if master_process and (step > 0 and args.val_loss_every > 0 and step % args.val_loss_every == 0):
                     norm_params_diff = norm_backend.calculate_norm(p.data - self.params_vector[self.iter_k])
-                    print(norm_params_diff)
                     norm_grad_diff = torch.dot(norm_backend.lmo(p.grad - self.grads_vector[self.iter_k]).flatten().to(torch.float32),  (p.grad - self.grads_vector[self.iter_k]).flatten()) 
                     norm_grad = torch.dot(norm_backend.lmo(p.grad).flatten().to(torch.float32), p.grad.flatten())
                     L_est = norm_grad_diff / norm_params_diff
                     if wandb_log: 
-                        wandb.log({f"L_estimated ({self.iter_k})": L_est, f"norm_grad ({self.iter_k})": norm_grad, "iter": step})
+                        wandb.log({
+                            f"L_estimated ({self.iter_k}, {group['norm']})": L_est,
+                            f"norm_grad ({self.iter_k}, {group['norm']})": norm_grad, 
+                            "iter": step
+                        })
                     self.iter_k += 1
 
                 update = scale * norm_backend.lmo(g)

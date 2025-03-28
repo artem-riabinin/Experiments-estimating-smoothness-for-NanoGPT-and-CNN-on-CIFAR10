@@ -114,9 +114,9 @@ class Scion(torch.optim.Optimizer):
 
     def step(self, step):
         if master_process and (args.val_loss_every > 0 and (step+1) % args.val_loss_every == 0):
-            params_vector = []
-            grads_vector = []
-            iter_k = 0
+            globals()['params_vector'] = []
+            globals()['grads_vector'] = []
+            globals()['iter_k'] = 0
         for group in self.param_groups:
             lr = group['lr']
             momentum = group['momentum']

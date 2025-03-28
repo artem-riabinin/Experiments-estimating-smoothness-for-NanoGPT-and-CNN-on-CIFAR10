@@ -130,6 +130,13 @@ class Scion(torch.optim.Optimizer):
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
             for p in group['params']:
             
+                if master_process:
+                    name = None
+                    for param_name, param in model.named_parameters():
+                    if param is p:
+                        name = param_name
+                        break
+            
                 if master_process and (args.val_loss_every > 0 and (step+1) % args.val_loss_every == 0):
                     self.params_vector.append(p.data.clone())
                     self.grads_vector.append(p.grad.clone())
@@ -151,10 +158,11 @@ class Scion(torch.optim.Optimizer):
                     norm_grad_diff = torch.dot(norm_backend.lmo(p.grad - self.grads_vector[self.iter_k]).flatten().to(torch.float32),  (p.grad - self.grads_vector[self.iter_k]).flatten()) 
                     norm_grad = torch.dot(norm_backend.lmo(p.grad).flatten().to(torch.float32), p.grad.flatten())
                     L_est = norm_grad_diff / norm_params_diff
+                    param_size = p.data.size()
                     if wandb_log: 
                         wandb.log({
-                            f"L_estimated ({self.iter_k}, {group['norm']})": L_est,
-                            f"norm_grad ({self.iter_k}, {group['norm']})": norm_grad, 
+                            f"L_estimated ({self.iter_k}, {group['norm']}, {param_size}, {name})": L_est,
+                            f"norm_grad ({self.iter_k}, {group['norm']}, {param_size}, {name})": norm_grad, 
                             "iter": step
                         })
                     self.iter_k += 1

@@ -147,7 +147,7 @@ class Scion(torch.optim.Optimizer):
                     L_est = norm_grad_diff / norm_params_diff
                     iter_k += 1
                     if wandb_log: 
-                        wandb.log({"L_estimated": L_est, "norm_grad": norm_grad, "step:", step})
+                        wandb.log({"L_estimated": L_est, "norm_grad": norm_grad, "step":, step})
 
                 update = scale * norm_backend.lmo(g)
                 if unconstrained:

@@ -354,10 +354,10 @@ class Hyperparameters:
     batch_size : int = 8*64 # batch size, in sequences, across all devices
     device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
-    num_iterations : int = 10000 # number of iterations to run
+    num_iterations : int = 5000 # number of iterations to run
     learning_rate : float = 0.00036
     warmup_iters : int = 0
-    warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
+    warmdown_iters : int = 0 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0
     # evaluation and logging hyperparams
     val_loss_every : int = 50 # every how many steps to evaluate val loss? 0 for only at the end
@@ -538,11 +538,32 @@ for step in range(args.num_iterations + 1):
 
     # --------------- TRAINING SECTION BEGIN -----------------
     model.train()
+    f_xk = 0.0
+    f_xstar = 0.0
     for i in range(1, train_accumulation_steps+1):
         # forward pass
         with ctx:
+            
+            save_path = "model_checkpoint.pth"
+            torch.save({'model_state_dict': model.state_dict(),}, save_path)
+            
+            checkpoint = torch.load("model_last_checkpoint.pth")
+            model.load_state_dict(checkpoint['model_state_dict'])
+            
             _, loss = model(x, y, return_logits=False)
             train_loss = loss.detach()
+            f_xstar += train_loss
+            xstar = torch.cat([p.view(-1).clone() for p in model.parameters()])
+            
+            checkpoint = torch.load("model_checkpoint.pth")
+            model.load_state_dict(checkpoint['model_state_dict'])
+            
+            _, loss = model(x, y, return_logits=False)
+            train_loss = loss.detach()
+            
+            f_xk += train_loss
+            x_k = torch.cat([p.view(-1).clone() for p in model.parameters()])
+            
         # advance the dataset for the next batch
         x, y = train_loader.next_batch()
         # backward pass
@@ -551,6 +572,19 @@ for step in range(args.num_iterations + 1):
                 loss.backward()
         else:
             loss.backward() # just sync on the last step
+            
+    f_xk /= train_accumulation_steps
+    f_xstar /= train_accumulation_steps
+    dist.all_reduce(f_xk, op=dist.ReduceOp.AVG)
+    dist.all_reduce(f_xstar, op=dist.ReduceOp.AVG)
+    dist.all_reduce(xk, op=dist.ReduceOp.AVG)
+    dist.all_reduce(xstar, op=dist.ReduceOp.AVG)
+    
+    for p in model.parameters():
+        p.grad /= train_accumulation_steps
+        
+    if master_process and step > 0 and (args.val_loss_every > 0 and step % args.val_loss_every == 0):   
+        diff = torch.dot(torch.cat([p.grad.view(-1) for p in model.parameters() if p.grad is not None]), xk - xstar) - f_xk + f_xstar
             
     # wandb logging
     if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
@@ -561,6 +595,8 @@ for step in range(args.num_iterations + 1):
                 "train/loss": train_loss,
                 "val/loss": val_loss,
                 "lr": lr,
+                "<grad f(xk), xk - x_star> - (f(xk)-f(x_star))": diff,
+                "f_xstar": f_xstar,
             })
             
     if last_step:
@@ -572,8 +608,6 @@ for step in range(args.num_iterations + 1):
             print(f"Model saved at {save_path}")    
         break
         
-    for p in model.parameters():
-        p.grad /= train_accumulation_steps
     # step the optimizers and schedulers
     for opt, sched in zip(optimizers, schedulers):
         opt.step(step=step)

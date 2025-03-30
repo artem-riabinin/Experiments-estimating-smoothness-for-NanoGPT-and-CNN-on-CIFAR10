@@ -537,6 +537,8 @@ for step in range(args.num_iterations + 1):
     # the validation/sampling one last time, and then we break right here as we're done.
 
     # --------------- TRAINING SECTION BEGIN -----------------
+    save_path = "model_checkpoint.pth"
+    torch.save({'model_state_dict': model.state_dict(),}, save_path)
     model.train()
     f_xk = 0.0
     f_xstar = 0.0
@@ -544,10 +546,7 @@ for step in range(args.num_iterations + 1):
         # forward pass
         with ctx:
             
-            save_path = "model_checkpoint.pth"
-            torch.save({'model_state_dict': model.state_dict(),}, save_path)
-            
-            checkpoint = torch.load("model_last_checkpoint.pth")
+            checkpoint = torch.load("model_last_checkpoint.pth", weights_only=True)
             model.load_state_dict(checkpoint['model_state_dict'])
             
             _, loss = model(x, y, return_logits=False)
@@ -555,7 +554,7 @@ for step in range(args.num_iterations + 1):
             f_xstar += train_loss
             xstar = torch.cat([p.view(-1).clone() for p in model.parameters()])
             
-            checkpoint = torch.load("model_checkpoint.pth")
+            checkpoint = torch.load("model_checkpoint.pth", weights_only=True)
             model.load_state_dict(checkpoint['model_state_dict'])
             
             _, loss = model(x, y, return_logits=False)
@@ -599,13 +598,7 @@ for step in range(args.num_iterations + 1):
                 "f_xstar": f_xstar,
             })
             
-    if last_step:
-        if master_process:
-            save_path = "model_last_checkpoint.pth"
-            torch.save({
-                'model_state_dict': model.state_dict(),
-            }, save_path)   
-            print(f"Model saved at {save_path}")    
+    if last_step:   
         break
         
     # step the optimizers and schedulers

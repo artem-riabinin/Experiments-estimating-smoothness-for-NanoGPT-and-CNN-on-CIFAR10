@@ -540,26 +540,28 @@ for step in range(args.num_iterations + 1):
     save_path = "model_checkpoint.pth"
     torch.save({'model_state_dict': model.state_dict(),}, save_path)
     model.train()
-    f_xk = 0.0
-    f_xstar = 0.0
+    if (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
+        f_xk = 0.0
+        f_xstar = 0.0
     for i in range(1, train_accumulation_steps+1):
         # forward pass
         with ctx:
+            if (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
+                checkpoint = torch.load("model_last_checkpoint.pth", weights_only=True)
+                model.load_state_dict(checkpoint['model_state_dict'])
             
-            checkpoint = torch.load("model_last_checkpoint.pth", weights_only=True)
-            model.load_state_dict(checkpoint['model_state_dict'])
+                _, loss = model(x, y, return_logits=False)
+                train_loss = loss.detach()
+                f_xstar += train_loss
+                xstar = torch.cat([p.view(-1).clone() for p in model.parameters()])
+            
+                checkpoint = torch.load("model_checkpoint.pth", weights_only=True)
+                model.load_state_dict(checkpoint['model_state_dict'])
             
             _, loss = model(x, y, return_logits=False)
             train_loss = loss.detach()
-            f_xstar += train_loss
-            xstar = torch.cat([p.view(-1).clone() for p in model.parameters()])
-            
-            checkpoint = torch.load("model_checkpoint.pth", weights_only=True)
-            model.load_state_dict(checkpoint['model_state_dict'])
-            
-            _, loss = model(x, y, return_logits=False)
-            train_loss = loss.detach()
-            f_xk += train_loss
+            if (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
+                f_xk += train_loss
             
         # advance the dataset for the next batch
         x, y = train_loader.next_batch()
@@ -570,17 +572,18 @@ for step in range(args.num_iterations + 1):
         else:
             loss.backward() # just sync on the last step
             
-    f_xk /= train_accumulation_steps
-    f_xstar /= train_accumulation_steps
-    dist.all_reduce(f_xk, op=dist.ReduceOp.AVG)
-    dist.all_reduce(f_xstar, op=dist.ReduceOp.AVG)
-    dist.all_reduce(xstar, op=dist.ReduceOp.AVG)
+    if (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
+        f_xk /= train_accumulation_steps
+        f_xstar /= train_accumulation_steps
+        dist.all_reduce(f_xk, op=dist.ReduceOp.AVG)
+        dist.all_reduce(f_xstar, op=dist.ReduceOp.AVG)
+        dist.all_reduce(xstar, op=dist.ReduceOp.AVG)
     
     for p in model.parameters():
         p.grad /= train_accumulation_steps
         
     if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):   
-        diff = torch.dot(torch.cat([p.grad.view(-1) for p in model.parameters() if p.grad is not None]), torch.cat([p.view(-1) for p in model.parameters()]) - xstar) - f_xk + f_xstar
+        diff = torch.dot(torch.cat([p.grad.view(-1) for p in model.parameters()]), torch.cat([p.view(-1) for p in model.parameters()]) - xstar) - 0.1*(f_xk - f_xstar)
             
     # wandb logging
     if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
@@ -592,7 +595,6 @@ for step in range(args.num_iterations + 1):
                 "val/loss": val_loss,
                 "lr": lr,
                 "<grad f(xk), xk - x_star> - (f(xk)-f(x_star))": diff,
-                "f_xstar": f_xstar,
             })
             
     if last_step:   

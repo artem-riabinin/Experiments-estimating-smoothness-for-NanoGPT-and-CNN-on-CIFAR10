@@ -561,7 +561,7 @@ for step in range(args.num_iterations + 1):
             train_loss = loss.detach()
             
             f_xk += train_loss
-            x_k = torch.cat([p.view(-1).clone() for p in model.parameters()])
+            xk = torch.cat([p.view(-1).clone() for p in model.parameters()])
             
         # advance the dataset for the next batch
         x, y = train_loader.next_batch()

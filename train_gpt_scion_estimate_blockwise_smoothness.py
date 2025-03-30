@@ -169,6 +169,8 @@ class Scion(torch.optim.Optimizer):
                     print(f'step:{step}/{args.num_iterations} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}')
                     with open(logfile, "a") as f:
                         f.write(f'step:{step}/{args.num_iterations} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}\n')
+                    if wandb_log:
+                        wandb.save(logfile)
                         
                     self.iter_k += 1
 
@@ -403,7 +405,7 @@ class Hyperparameters:
     batch_size : int = 8*64 # batch size, in sequences, across all devices
     device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
-    num_iterations : int = 5001 # number of iterations to run
+    num_iterations : int = 1 # number of iterations to run
     learning_rate : float = 0.00036
     warmup_iters : int = 0
     warmdown_iters : int = 0 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule

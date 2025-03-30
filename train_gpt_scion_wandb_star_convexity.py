@@ -579,7 +579,7 @@ for step in range(args.num_iterations + 1):
     for p in model.parameters():
         p.grad /= train_accumulation_steps
         
-    if master_process and step > 0 and (args.val_loss_every > 0 and step % args.val_loss_every == 0):   
+    if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):   
         diff = torch.dot(torch.cat([p.grad.view(-1) for p in model.parameters() if p.grad is not None]), torch.cat([p.view(-1) for p in model.parameters()]) - xstar) - f_xk + f_xstar
             
     # wandb logging

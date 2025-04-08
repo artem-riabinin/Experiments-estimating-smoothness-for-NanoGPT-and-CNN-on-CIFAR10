@@ -593,7 +593,7 @@ def main(run, model):
         'norm_kwargs': {'normalized': True},
         'scale': radius*100.0,
     }]
-    optimizer = Scion(optim_groups, lr=2**-4, momentum=0.5, unconstrained=True)
+    optimizer = [Scion(optim_groups, lr=2**-4, momentum=0.5, unconstrained=True)]
     optimizer.init()
 
     # For accurately timing GPU code

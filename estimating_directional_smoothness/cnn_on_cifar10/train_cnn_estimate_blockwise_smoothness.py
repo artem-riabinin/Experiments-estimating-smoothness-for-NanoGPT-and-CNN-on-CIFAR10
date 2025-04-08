@@ -668,9 +668,12 @@ def main(run, model):
         for inputs, labels in train_loader:
             outputs = model(inputs, whiten_bias_grad=(step < whiten_bias_train_steps))
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
-            for opt in optimizer:
-                step_epoch = epoch + (step+1)/total_train_steps
-                opt.step(step_epoch=step_epoch, run=run)
+            for i, opt in enumerate(optimizer):
+                if i == 0:
+                    opt.step()
+                else:
+                    step_epoch = epoch + (step+1)/total_train_steps
+                    opt.step(step_epoch=step_epoch, run=run)
             model.zero_grad(set_to_none=True)
             step += 1
             if step >= total_train_steps:

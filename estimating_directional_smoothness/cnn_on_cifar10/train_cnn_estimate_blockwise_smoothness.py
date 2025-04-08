@@ -513,9 +513,9 @@ class CifarNet(nn.Module):
         eigenvectors_scaled = eigenvectors.T.reshape(-1,c,h,w) / torch.sqrt(eigenvalues.view(-1,1,1,1) + eps)
         self.whiten.weight.data[:] = torch.cat((eigenvectors_scaled, -eigenvectors_scaled))
 
-    def forward(self, x, whiten_bias_grad=True):
+    def forward(self, x):
         b = self.whiten.bias
-        x = F.conv2d(x, self.whiten.weight, b if whiten_bias_grad else b.detach())
+        x = F.conv2d(x, self.whiten.weight)
         x = self.layers(x)
         x = x.view(len(x), -1)
         return self.head(x) / x.size(-1)
@@ -608,7 +608,6 @@ def main(run, model):
         # The only purpose of the first run is to warmup the compiled model, so we can use dummy data
         train_loader.labels = torch.randint(0, 10, size=(len(train_loader.labels),), device=train_loader.labels.device)
     total_train_steps = ceil(8 * len(train_loader))
-    #whiten_bias_train_steps = ceil(3 * len(train_loader))
     
     # Create optimizer
     output_layer = [model.head.weight]
@@ -662,8 +661,7 @@ def main(run, model):
         start_timer()
         model.train()
         for inputs, labels in train_loader:
-            #outputs = model(inputs, whiten_bias_grad=(step < whiten_bias_train_steps))
-            outputs = model(inputs, whiten_bias_grad=True)
+            outputs = model(inputs)
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
             for opt in optimizer:
                 step_epoch = epoch + (step+1)/total_train_steps
@@ -706,15 +704,7 @@ if __name__ == "__main__":
     model.compile(mode="max-autotune")
 
     print_columns(logging_columns_list, is_head=True)
-
-    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Total number of parameters that require gradients: {total_params}")
-
     main("warmup", model)
-
-    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Total number of parameters that require gradients: {total_params}")
-
     accs = torch.tensor([main(run, model) for run in range(1)])
     print("Mean: %.4f    Std: %.4f" % (accs.mean(), accs.std()))
 

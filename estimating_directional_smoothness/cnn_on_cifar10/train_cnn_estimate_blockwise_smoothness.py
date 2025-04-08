@@ -575,7 +575,7 @@ def main(run, model):
     total_train_steps = ceil(8 * len(train_loader))
     whiten_bias_train_steps = ceil(8 * len(train_loader))
     
-    # Create optimizers
+    # Create optimizer
     output_layer = [model.head.weight]
     remaining_parameters = [
         p for name, p in model.named_parameters()
@@ -628,7 +628,7 @@ def main(run, model):
         for inputs, labels in train_loader:
             outputs = model(inputs, whiten_bias_grad=(step < whiten_bias_train_steps))
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
-            for opt in optimizers:
+            for opt in optimizer:
                 step_epoch = epoch + (step+1)/total_train_steps
                 opt.step(step_epoch=step_epoch, run=run)
             model.zero_grad(set_to_none=True)

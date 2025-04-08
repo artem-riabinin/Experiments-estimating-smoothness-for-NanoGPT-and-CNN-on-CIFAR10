@@ -705,7 +705,7 @@ if __name__ == "__main__":
 
     # We re-use the compiled model between runs to save the non-data-dependent compilation time
     model = CifarNet().cuda().to(memory_format=torch.channels_last)
-    model.compile(mode="max-autotune")
+    model.compile(mode="default")
 
     print_columns(logging_columns_list, is_head=True)
     main("warmup", model)

@@ -704,6 +704,8 @@ if __name__ == "__main__":
     model.compile(mode="max-autotune")
 
     print_columns(logging_columns_list, is_head=True)
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Total: {total_params}")
     main("warmup", model)
     accs = torch.tensor([main(run, model) for run in range(1)])
     print("Mean: %.4f    Std: %.4f" % (accs.mean(), accs.std()))

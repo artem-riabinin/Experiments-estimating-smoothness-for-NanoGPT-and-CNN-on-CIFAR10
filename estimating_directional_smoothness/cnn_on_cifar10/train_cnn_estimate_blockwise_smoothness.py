@@ -515,7 +515,7 @@ class CifarNet(nn.Module):
 
     def forward(self, x):
         b = self.whiten.bias
-        x = self.whiten(x)
+        x = F.conv2d(x, self.whiten.weight, b)
         x = self.layers(x)
         x = x.view(len(x), -1)
         return self.head(x) / x.size(-1)
@@ -614,15 +614,19 @@ def main(run, model):
     remaining_parameters = [
         p for name, p in model.named_parameters()
         if p.requires_grad and not name.startswith("head.")
-    ]        
+    ]  
+    filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
+    norm_biases = [p for n, p in model.named_parameters() if "norm" in n and p.requires_grad]
+    param_configs1 = [dict(params=[model.whiten.bias]), dict(params=norm_biases), dict(params=filter_params)]
+    param_configs2 = [dict(params=[model.head.weight])]
     radius = 1.0
     optim_groups = [{
-        'params': remaining_parameters,
+        'params': param_configs1,
         'norm': 'Auto', # Picks layerwise norm based on the parameter shape
         'norm_kwargs': {},
         'scale': radius,
     }, {
-        'params': output_layer,
+        'params': param_configs2,
         'norm': 'Sign',
         'norm_kwargs': {'normalized': True},
         'scale': radius*100.0,

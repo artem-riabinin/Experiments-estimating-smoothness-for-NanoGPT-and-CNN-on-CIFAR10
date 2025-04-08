@@ -515,7 +515,7 @@ class CifarNet(nn.Module):
 
     def forward(self, x):
         b = self.whiten.bias
-        x = F.conv2d(x, self.whiten.weight, b)
+        x = self.whiten(x)
         x = self.layers(x)
         x = x.view(len(x), -1)
         return self.head(x) / x.size(-1)

@@ -682,7 +682,7 @@ def main(run, model):
         train_acc = (outputs.detach().argmax(1) == labels).float().mean().item()
         val_acc = evaluate(model, test_loader, tta_level=0)
         print_training_details(locals(), is_final_entry=False)
-        run = None # Only print the run number once
+    run = None # Only print the run number once
 
     ####################
     #  TTA Evaluation  #
@@ -706,7 +706,15 @@ if __name__ == "__main__":
     model.compile(mode="max-autotune")
 
     print_columns(logging_columns_list, is_head=True)
+
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Total number of parameters that require gradients: {total_params}")
+
     main("warmup", model)
+
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Total number of parameters that require gradients: {total_params}")
+
     accs = torch.tensor([main(run, model) for run in range(1)])
     print("Mean: %.4f    Std: %.4f" % (accs.mean(), accs.std()))
 

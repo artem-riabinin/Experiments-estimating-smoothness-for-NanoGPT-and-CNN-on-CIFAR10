@@ -37,7 +37,7 @@ wandb_run_name = 'cnn_unScion_estimate_blockwise_smoothness'
 
 
 #############################################
-#               Scion optimizer              #
+#               Scion optimizer             #
 #############################################
 
 @torch.compile
@@ -608,7 +608,7 @@ def main(run, model):
         # The only purpose of the first run is to warmup the compiled model, so we can use dummy data
         train_loader.labels = torch.randint(0, 10, size=(len(train_loader.labels),), device=train_loader.labels.device)
     total_train_steps = ceil(8 * len(train_loader))
-    whiten_bias_train_steps = ceil(3 * len(train_loader))
+    #whiten_bias_train_steps = ceil(3 * len(train_loader))
     
     # Create optimizer
     output_layer = [model.head.weight]
@@ -662,7 +662,8 @@ def main(run, model):
         start_timer()
         model.train()
         for inputs, labels in train_loader:
-            outputs = model(inputs, whiten_bias_grad=(step < whiten_bias_train_steps))
+            #outputs = model(inputs, whiten_bias_grad=(step < whiten_bias_train_steps))
+            outputs = model(inputs)
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
             for opt in optimizer:
                 step_epoch = epoch + (step+1)/total_train_steps

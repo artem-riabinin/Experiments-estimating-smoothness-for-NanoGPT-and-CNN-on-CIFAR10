@@ -350,7 +350,7 @@ def main(run, model):
         # The only purpose of the first run is to warmup the compiled model, so we can use dummy data
         train_loader.labels = torch.randint(0, 10, size=(len(train_loader.labels),), device=train_loader.labels.device)
     total_train_steps = ceil(8 * len(train_loader))
-    whiten_bias_train_steps = ceil(3 * len(train_loader))
+    #whiten_bias_train_steps = ceil(3 * len(train_loader))
 
     # Create optimizers and learning rate schedulers
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
@@ -395,7 +395,7 @@ def main(run, model):
         start_timer()
         model.train()
         for inputs, labels in train_loader:
-            outputs = model(inputs, whiten_bias_grad=(step < whiten_bias_train_steps))
+            outputs = model(inputs, whiten_bias_grad=True)
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
             for group in optimizer1.param_groups[:1]:
                 group["lr"] = group["initial_lr"] * (1 - step / whiten_bias_train_steps)

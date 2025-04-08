@@ -325,11 +325,12 @@ class Scion(torch.optim.Optimizer):
                     buf.mul_(1-momentum).add_(g, alpha=momentum)
                     g = buf
 
-                if run != "warmup":
-                    print('1111111')    
-                    if wandb_log:({
+                if run != "warmup":    
+                    if wandb_log:
+                        print('1111111')
+                        ({
                         "epoch": step_epoch
-                    })
+                        })
 
                 update = scale * norm_backend.lmo(g)
                 if not unconstrained:

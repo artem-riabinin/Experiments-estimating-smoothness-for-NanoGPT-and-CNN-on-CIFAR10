@@ -617,8 +617,8 @@ def main(run, model):
     ]  
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
     norm_biases = [p for n, p in model.named_parameters() if "norm" in n and p.requires_grad]
-    param_configs1 = [dict(params=[model.whiten.bias]), dict(params=norm_biases), dict(params=filter_params)]
-    param_configs2 = [dict(params=[model.head.weight])]
+    param_configs1 = [model.whiten.bias] + norm_biases + filter_params
+    param_configs2 = [model.head.weight]
     radius = 1.0
     optim_groups = [{
         'params': param_configs1,

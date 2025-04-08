@@ -270,7 +270,7 @@ class Scion(torch.optim.Optimizer):
         defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained, norm=norm, norm_kwargs=norm_kwargs)
         super().__init__(params, defaults)
 
-    def step(self, step_epoch):
+    def step(self, step_epoch, run):
         for group in self.param_groups:
             lr = group['lr']
             momentum = group['momentum']
@@ -289,10 +289,11 @@ class Scion(torch.optim.Optimizer):
                     buf = state['momentum_buffer']
                     buf.mul_(1-momentum).add_(g, alpha=momentum)
                     g = buf
-                    
-                if wandb_log:({
-                    "epoch": step_epoch
-                })
+
+                if run != "warmup":    
+                    if wandb_log:({
+                        "epoch": step_epoch
+                    })
 
                 update = scale * norm_backend.lmo(g)
                 if not unconstrained:
@@ -572,9 +573,14 @@ def main(run, model):
         # The only purpose of the first run is to warmup the compiled model, so we can use dummy data
         train_loader.labels = torch.randint(0, 10, size=(len(train_loader.labels),), device=train_loader.labels.device)
     total_train_steps = ceil(8 * len(train_loader))
-    whiten_bias_train_steps = ceil(3 * len(train_loader))
+    whiten_bias_train_steps = ceil(8 * len(train_loader))
     
-    # Create optimizers        
+    # Create optimizers
+    output_layer = [model.head.weight]
+    remaining_parameters = [
+        p for name, p in model.named_parameters()
+        if p.requires_grad and not name.startswith("head.")
+    ]        
     radius = 1.0
     optim_groups = [{
         'params': remaining_parameters,
@@ -624,7 +630,7 @@ def main(run, model):
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
             for opt in optimizers:
                 step_epoch = epoch + (step+1)/total_train_steps
-                opt.step(step_epoch=step_epoch)
+                opt.step(step_epoch=step_epoch, run=run)
             model.zero_grad(set_to_none=True)
             step += 1
             if step >= total_train_steps:
@@ -656,7 +662,7 @@ def main(run, model):
 if __name__ == "__main__":
 
     # wandb logging
-    run = wandb.init(project=wandb_project, name=wandb_run_name)
+    run_wandb = wandb.init(project=wandb_project, name=wandb_run_name)
 
     # We re-use the compiled model between runs to save the non-data-dependent compilation time
     model = CifarNet().cuda().to(memory_format=torch.channels_last)
@@ -664,7 +670,7 @@ if __name__ == "__main__":
 
     print_columns(logging_columns_list, is_head=True)
     main("warmup", model)
-    accs = torch.tensor([main(run, model) for run in range(200)])
+    accs = torch.tensor([main(run, model) for run in range(1)])
     print("Mean: %.4f    Std: %.4f" % (accs.mean(), accs.std()))
 
     log_dir = os.path.join("logs", str(uuid.uuid4()))
@@ -672,4 +678,4 @@ if __name__ == "__main__":
     log_path = os.path.join(log_dir, "log.pt")
     torch.save(dict(code=code, accs=accs), log_path)
     print(os.path.abspath(log_path))
-    run.finish()
+    run_wandb.finish()

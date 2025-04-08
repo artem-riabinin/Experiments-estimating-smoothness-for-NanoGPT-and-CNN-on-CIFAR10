@@ -604,29 +604,24 @@ def main(run, model):
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
-    #if run == "warmup":
+    if run == "warmup":
         # The only purpose of the first run is to warmup the compiled model, so we can use dummy data
-        #train_loader.labels = torch.randint(0, 10, size=(len(train_loader.labels),), device=train_loader.labels.device)
+        train_loader.labels = torch.randint(0, 10, size=(len(train_loader.labels),), device=train_loader.labels.device)
     total_train_steps = ceil(8 * len(train_loader))
     
     # Create optimizer
-    output_layer = [model.head.weight]
-    remaining_parameters = [
-        p for name, p in model.named_parameters()
-        if p.requires_grad and not name.startswith("head.")
-    ]  
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
     norm_biases = [p for n, p in model.named_parameters() if "norm" in n and p.requires_grad]
-    param_configs1 = [model.whiten.bias] + norm_biases + filter_params
-    param_configs2 = [model.head.weight]
+    param_configs = [model.whiten.bias] + norm_biases + filter_params
+    param_configs_output_layer = [model.head.weight]
     radius = 1.0
     optim_groups = [{
-        'params': param_configs1,
+        'params': param_configs,
         'norm': 'Auto', # Picks layerwise norm based on the parameter shape
         'norm_kwargs': {},
         'scale': radius,
     }, {
-        'params': param_configs2,
+        'params': param_configs_output_layer,
         'norm': 'Sign',
         'norm_kwargs': {'normalized': True},
         'scale': radius*100.0,

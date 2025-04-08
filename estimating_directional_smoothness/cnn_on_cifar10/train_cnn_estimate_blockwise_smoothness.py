@@ -663,7 +663,7 @@ def main(run, model):
         model.train()
         for inputs, labels in train_loader:
             #outputs = model(inputs, whiten_bias_grad=(step < whiten_bias_train_steps))
-            outputs = model(inputs)
+            outputs = model(inputs, whiten_bias_grad=True)
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
             for opt in optimizer:
                 step_epoch = epoch + (step+1)/total_train_steps

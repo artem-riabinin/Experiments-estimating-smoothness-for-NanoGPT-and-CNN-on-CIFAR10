@@ -439,7 +439,7 @@ if __name__ == "__main__":
 
     print_columns(logging_columns_list, is_head=True)
     main("warmup", model)
-    accs = torch.tensor([main(run, model) for run in range(200)])
+    accs = torch.tensor([main(run, model) for run in range(1)])
     print("Mean: %.4f    Std: %.4f" % (accs.mean(), accs.std()))
 
     log_dir = os.path.join("logs", str(uuid.uuid4()))

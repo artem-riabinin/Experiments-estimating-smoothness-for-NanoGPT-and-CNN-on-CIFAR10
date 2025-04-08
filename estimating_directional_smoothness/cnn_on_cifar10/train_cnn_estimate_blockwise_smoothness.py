@@ -325,7 +325,8 @@ class Scion(torch.optim.Optimizer):
                     buf.mul_(1-momentum).add_(g, alpha=momentum)
                     g = buf
 
-                if run != "warmup":    
+                if run != "warmup":
+                    print('1111111')    
                     if wandb_log:({
                         "epoch": step_epoch
                     })
@@ -600,7 +601,6 @@ def evaluate(model, loader, tta_level=0):
 def main(run, model):
 
     batch_size = 2000
-    wd = 2e-6 * batch_size
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))

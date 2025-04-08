@@ -656,7 +656,7 @@ def main(run, model):
 if __name__ == "__main__":
 
     # wandb logging
-    run = wandb.init(project=wandb_project, name=wandb_run_name, config=configuration)
+    run = wandb.init(project=wandb_project, name=wandb_run_name)
 
     # We re-use the compiled model between runs to save the non-data-dependent compilation time
     model = CifarNet().cuda().to(memory_format=torch.channels_last)

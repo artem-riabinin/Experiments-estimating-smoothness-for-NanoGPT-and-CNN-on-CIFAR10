@@ -606,9 +606,9 @@ def main(run, model):
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
-    if run == "warmup":
+    #if run == "warmup":
         # The only purpose of the first run is to warmup the compiled model, so we can use dummy data
-        train_loader.labels = torch.randint(0, 10, size=(len(train_loader.labels),), device=train_loader.labels.device)
+        #train_loader.labels = torch.randint(0, 10, size=(len(train_loader.labels),), device=train_loader.labels.device)
     total_train_steps = ceil(8 * len(train_loader))
     whiten_bias_train_steps = ceil(3 * len(train_loader))
     
@@ -672,7 +672,7 @@ def main(run, model):
                 if i == 0:
                     opt.step()
                 else:
-                    step_epoch = epoch + (step+1)/total_train_steps
+                    step_epoch = (step+1)/total_train_steps
                     opt.step(step_epoch=step_epoch, run=run)
             model.zero_grad(set_to_none=True)
             step += 1

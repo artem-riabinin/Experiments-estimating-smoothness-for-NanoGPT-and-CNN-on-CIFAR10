@@ -11,6 +11,7 @@ import math
 from math import ceil
 
 import torch
+torch.set_float32_matmul_precision('high')
 from torch import nn
 import torch.nn.functional as F
 import torchvision
@@ -271,6 +272,13 @@ class Scion(torch.optim.Optimizer):
             unconstrained = group['unconstrained']
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
             for p in group['params']:
+                if iter > 0 and iter % 5 == 0:
+                    name = None
+                    for param_name, param in model.named_parameters():
+                        if param is p:
+                            name = param_name
+                            break
+
                 if (iter+1) % 5 == 0:
                     self.params_vector.append(p.data.clone())
                     self.grads_vector.append(p.grad.clone())

@@ -597,15 +597,15 @@ def main(model):
         'params': output_layer,
         'norm': 'Sign',
         'norm_kwargs': {'normalized': True},
-        'scale': radius*100.0,
+        'scale': radius*10.0,
     }]
-    optimizer1 = Scion(optim_groups, lr=1**-4, momentum=0.5, unconstrained=True)
+    optimizer1 = Scion(optim_groups, lr=5**-2, momentum=0.5, unconstrained=True)
     optimizer1.init()
     optimizers = [optimizer1]
 
     def linear_decay(step):
         return max(0.0, 1.0 - step / total_train_steps)
-    #schedulers = [torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda=linear_decay) for opt in optimizers]
+    schedulers = [torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda=linear_decay) for opt in optimizers]
 
     # For accurately timing GPU code
     starter = torch.cuda.Event(enable_timing=True)

@@ -83,91 +83,16 @@ class Norm(object):
         raise NotImplementedError
 
 
-class ColNorm(Norm):
-    """
-    Column-wise normalization.
-
-    Args:
-        normalized (bool, optional): If True, normalizes by the input dimension. Use True only for non-input layers.
-        transpose (bool, optional): If True, transposes input before normalization. Use True for embedding layers
-                which store weights as (vocab_size, embedding_dim).
-    """
-    def __init__(self, normalized=False, transpose=False):
-        self.normalized = normalized
-        self.transpose = transpose
-
-    def lmo(self, g):
-        eps = 1e-8
-        if self.transpose:
-            g = g.transpose(0, 1) 
-        rms_values = 1/math.sqrt(g.size(0))*torch.sqrt(torch.sum(g ** 2, dim=0, keepdim=True))
-        if self.normalized:
-            rms_values *= g.size(1)
-        g = g / (rms_values + eps)
-        if self.transpose:
-            g = g.transpose(0, 1) 
-        return g
-
-    def init(self, w):
-        dtype = w.data.dtype
-        if self.transpose:
-            w.data = w.data.transpose(0, 1)
-        torch.nn.init.normal_(w.data)
-        w.data /= w.norm(dim=0, keepdim=True)
-        w.data *= math.sqrt(w.size(0))
-        if self.normalized:
-            w.data /= w.size(1)
-        w.data = w.data.to(dtype=dtype)
-        if self.transpose:
-            w.data = w.data.transpose(0, 1)
-        return w
-
-
-class RowNorm(Norm):
-    """
-    Row-wise normalization.
-
-    Args:
-        normalized (bool, optional): If True, normalizes by the input dimension. Use False only for the input layer.
-        transpose (bool, optional): If True, transposes input before normalization. Use True for embedding layers
-                which store weights as (vocab_size, embedding_dim).
-    """
-    def __init__(self, normalized=True, transpose=False):
-        self.normalized = normalized
-        self.transpose = transpose
-
-    def lmo(self, g):
-        eps = 1e-8
-        if self.transpose:
-            g = g.transpose(0, 1) 
-        rms_values = torch.sqrt(torch.sum(g ** 2, dim=-1, keepdim=True))
-        if self.normalized:
-            rms_values *= math.sqrt(g.size(-1))
-        g = g / (rms_values + eps)
-        if self.transpose:
-            g = g.transpose(0, 1) 
-        return g
-
-    def init(self, w):
-        dtype = w.data.dtype
-        if self.transpose:
-            w.data = w.data.transpose(0, 1)
-        torch.nn.init.normal_(w.data)
-        w.data /= w.norm(dim=-1, keepdim=True)
-        if self.normalized:
-            w.data /= math.sqrt(w.size(-1))
-        w.data = w.data.to(dtype=dtype)
-        if self.transpose:
-            w.data = w.data.transpose(0, 1)       
-        return w
-
-
 class BiasRMS(Norm):
     def lmo(self, g):
         eps = 1e-8
         rms_values = torch.sqrt(torch.mean(g ** 2, dim=0, keepdim=True))
         g = g / (rms_values + eps)
         return g
+    
+    def calculate_norm(self, p):
+        rms_values = torch.sqrt(torch.mean(p ** 2, dim=0, keepdim=True))
+        return rms_values       
 
     def init(self, g):
         return torch.nn.init.zeros_(g)
@@ -182,6 +107,12 @@ class SpectralConv(Norm):
         out_channels, in_channels, k, _ = g.shape
         g *= (out_channels / in_channels)**0.5 / (k ** 2)
         return g
+
+    def calculate_norm(self, p):
+        norm = torch.linalg.norm(p.reshape(len(p), -1), ord=2)
+        out_channels, in_channels, k, _ = p.shape
+        norm /= (out_channels / in_channels)**0.5 / (k ** 2)
+        return norm
     
     def init(self, w):
         w_fp = w.data.double()
@@ -213,8 +144,19 @@ class Spectral(Norm):
         if self.max:
             scale = max(1,scale)
         g *= scale
-
         return g
+
+    def calculate_norm(self, p):
+        norm = torch.linalg.norm(p, ord=2)
+        d_out, d_in = p.shape
+        if self.normalized:
+            scale = (d_out / d_in)**0.5
+        else:
+            scale = d_out**0.5
+        if self.max:
+            scale = max(1,scale)
+        norm *= 1 / scale
+        return norm
 
     def init(self, w):
         w_fp = w.data.double()
@@ -244,6 +186,13 @@ class Sign(Norm):
             return (1/d_in)*torch.sign(g)    
         else:
             return torch.sign(g)
+
+    def calculate_norm(self, p):
+        d_out, d_in = p.shape
+        if self.normalized:
+            return d_in*torch.max(torch.abs(p))    
+        else:
+            return torch.max(torch.abs(p))
 
     def init(self, w):
         if self.zero_init:
@@ -302,10 +251,18 @@ class Scion(torch.optim.Optimizer):
             raise ValueError(f"Invalid momentum value: {momentum}")
         if norm_kwargs is None:
             norm_kwargs = {}
+        self.params_vector = []  
+        self.grads_vector = []  
+        self.iter_k = 0
         defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained, norm=norm, norm_kwargs=norm_kwargs)
         super().__init__(params, defaults)
 
-    def step(self, step_epoch, run):
+    def step(self, step_epoch, iter, run):
+        if (iter+1) % 5 == 0:
+            self.params_vector = []
+            self.grads_vector = []
+            self.iter_k = 0
+
         for group in self.param_groups:
             lr = group['lr']
             momentum = group['momentum']
@@ -313,6 +270,10 @@ class Scion(torch.optim.Optimizer):
             unconstrained = group['unconstrained']
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
             for p in group['params']:
+                if (iter+1) % 5 == 0:
+                    self.params_vector.append(p.data.clone())
+                    self.grads_vector.append(p.grad.clone())
+
                 g = p.grad
                 if g is None:
                     continue
@@ -324,11 +285,27 @@ class Scion(torch.optim.Optimizer):
                     buf = state['momentum_buffer']
                     buf.mul_(1-momentum).add_(g, alpha=momentum)
                     g = buf
-   
-                if wandb_log:
-                    wandb.log({
-                    "epoch": step_epoch
-                    })
+
+                if iter > 0 and iter % 5 == 0:
+                    norm_params_diff = norm_backend.calculate_norm(p.data - self.params_vector[self.iter_k])
+                    norm_grad_diff = torch.dot(norm_backend.lmo(p.grad - self.grads_vector[self.iter_k]).flatten().to(torch.float32),  (p.grad - self.grads_vector[self.iter_k]).flatten()) 
+                    norm_grad = torch.dot(norm_backend.lmo(p.grad).flatten().to(torch.float32), p.grad.flatten())
+                    L_est = norm_grad_diff / norm_params_diff
+                    param_size = p.data.size()
+                    if wandb_log: 
+                        wandb.log({
+                            f"L_estimated ({self.iter_k}, {group['norm']}, {param_size}, {name})": L_est,
+                            f"norm_grad ({self.iter_k}, {group['norm']}, {param_size}, {name})": norm_grad, 
+                            "iter": step_epoch
+                        })
+                        
+                    print(f'step:{step}/{args.num_iterations} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}')
+                    with open(logfile, "a") as f:
+                        f.write(f'step:{step_epoch}/{args.num_iterations} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}\n')
+                    if wandb_log:
+                        wandb.save(logfile)
+                        
+                    self.iter_k += 1
 
                 update = scale * norm_backend.lmo(g)
                 if not unconstrained:
@@ -600,18 +577,16 @@ def evaluate(model, loader, tta_level=0):
 def main(run, model):
 
     batch_size = 2000
-    bias_lr = 0.053 # lr for specific parameters: norm_biases
-    wd = 2e-6 * batch_size # wd for specific parameters: norm_biases
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
-    total_train_steps = ceil(16 * len(train_loader))
+    total_train_steps = ceil(8 * len(train_loader))
+    iters_per_batch = total_train_steps // len(train_loader)
     
     # Create optimizer
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
     norm_biases = [p for n, p in model.named_parameters() if "norm" in n and p.requires_grad]
-    param_configs = [dict(params=norm_biases, lr=bias_lr, weight_decay=wd/bias_lr)]
-    remaining_parameters = filter_params + [model.whiten.bias]
+    remaining_parameters = filter_params + [model.whiten.bias] + norm_biases
     output_layer = [model.head.weight]
     radius = 1.0
     optim_groups = [{
@@ -625,12 +600,9 @@ def main(run, model):
         'norm_kwargs': {'normalized': True},
         'scale': radius*100.0,
     }]
-    optimizer1 = torch.optim.SGD(param_configs, momentum=0.85, nesterov=True, fused=True) # optmizer for specific parameters: norm_biases
-    for group in optimizer1.param_groups:
-        group["initial_lr"] = group["lr"]
-    optimizer2 = Scion(optim_groups, lr=2**-4, momentum=0.5, unconstrained=True)
-    optimizer2.init()
-    optimizers = [optimizer1, optimizer2]
+    optimizer1 = Scion(optim_groups, lr=2**-4, momentum=0.5, unconstrained=True)
+    optimizer1.init()
+    optimizers = [optimizer1]
 
     # For accurately timing GPU code
     starter = torch.cuda.Event(enable_timing=True)
@@ -661,18 +633,16 @@ def main(run, model):
 
         start_timer()
         model.train()
+        iter = 0
+        step_epoch = epoch
         for inputs, labels in train_loader:
             outputs = model(inputs)
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
-            for group in optimizer1.param_groups:
-                group["lr"] = group["initial_lr"] * (1 - step / total_train_steps)
-            for i, opt in enumerate(optimizers):
-                if i == 0:
-                    opt.step()
-                else:
-                    step_epoch = (step+1)/total_train_steps
-                    opt.step(step_epoch=step_epoch, run=run)
+            for opt in optimizers:
+                step_epoch += iter / iters_per_batch
+                opt.step(step_epoch=step_epoch, iter=iter, run=run)
             model.zero_grad(set_to_none=True)
+            iter += 1
             step += 1
             if step >= total_train_steps:
                 break

@@ -93,7 +93,7 @@ class Sign(Norm):
         return (1/in_channels)*torch.sign(g)    
         
     def calculate_norm(self, p):
-        out_channels, in_channels = p.shape     # in_channels=768
+        out_channels, in_channels = p.shape
         return (in_channels)*torch.max(torch.abs(p))
 
 
@@ -108,12 +108,10 @@ class Scion(torch.optim.Optimizer):
         if lr < 0.0:
             raise ValueError(f"Invalid learning rate: {lr}")
         if momentum < 0.0:
-            raise ValueError(f"Invalid momentum value: {momentum}")
-            
+            raise ValueError(f"Invalid momentum value: {momentum}")       
         self.params_vector = []  
         self.grads_vector = []  
-        self.iter_k = 0
-            
+        self.iter_k = 0           
         defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained)
         super().__init__(params, defaults)
 
@@ -122,14 +120,14 @@ class Scion(torch.optim.Optimizer):
             self.params_vector = []
             self.grads_vector = []
             self.iter_k = 0
+            
         for group in self.param_groups:
             lr = group['lr']
             momentum = group['momentum']
             scale = group['scale']
             unconstrained = group['unconstrained']
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
-            for p in group['params']:
-            
+            for p in group['params']: 
                 if master_process and (step > 0 and args.val_loss_every > 0 and step % args.val_loss_every == 0):
                     name = None
                     for param_name, param in model.named_parameters():

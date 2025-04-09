@@ -23,7 +23,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # wandb logging
 wandb_log = True 
 wandb_project = 'nanogpt'
-wandb_run_name = 'nanogpt_ScionScheduleFree_default'
+wandb_run_name = 'nanogpt_unScion_estimate_blockwise_smoothness'
 
 # -----------------------------------------------------------------------------
 # Scion optimizer
@@ -76,6 +76,12 @@ class Spectral(Norm):
         d_out, d_in = g.shape
         g *= (d_out / d_in)**0.5
         return g
+        
+    def calculate_norm(self, p):
+        norm = torch.linalg.norm(p, ord=2)
+        d_out, d_in = p.shape
+        norm *= (d_in / d_out)**0.5
+        return norm
 
 
 class Sign(Norm):
@@ -85,6 +91,10 @@ class Sign(Norm):
     def lmo(self, g):
         out_channels, in_channels = g.shape     # in_channels=768
         return (1/in_channels)*torch.sign(g)    
+        
+    def calculate_norm(self, p):
+        out_channels, in_channels = p.shape
+        return (in_channels)*torch.max(torch.abs(p))
 
 
 norm_dict = {
@@ -93,101 +103,42 @@ norm_dict = {
 }
 
 
-class ScionScheduleFree(torch.optim.Optimizer):
-    def __init__(self, params, lr=1e-3, momentum=1.0, norm: str='Spectral', norm_kwargs: dict=None, scale=1.0, unconstrained=False):
-        if lr < 0.0:
-            raise ValueError(f"Invalid learning rate: {lr}")
-        if momentum <= 0 or momentum >= 1:
-            raise ValueError(f"Momentum must be between 0 and 1 exclusive: {momentum}")
-        defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained, train_mode=True, weight_sum=0.0)
-        super().__init__(params, defaults)
-        
-    def eval(self):
-        for group in self.param_groups:
-            train_mode = group['train_mode']
-            momentum = group['momentum']
-            momentum = 1 - momentum
-            if train_mode:
-                for p in group['params']:
-                    state = self.state[p]
-                    if 'z' in state:
-                        p.data.lerp_(end=state['z'], weight=1-1/momentum)
-                group['train_mode'] = False
-
-    def train(self):
-        for group in self.param_groups:
-            train_mode = group['train_mode']
-            momentum = group['momentum']
-            momentum = 1 - momentum
-            if not train_mode:
-                for p in group['params']:
-                    state = self.state[p]
-                    if 'z' in state:
-                        p.data.lerp_(end=state['z'], weight=1-momentum)
-                group['train_mode'] = True
-
-    def step(self):
-        for group in self.param_groups:
-            lr = group['lr']
-            momentum = group['momentum']
-            momentum = 1 - momentum
-            scale = group['scale']
-            unconstrained = group['unconstrained']
-            norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
-            
-            weight = lr**2
-            weight_sum = group['weight_sum'] = group['weight_sum'] + weight
-            try:
-                ckp1 = weight/weight_sum
-            except ZeroDivisionError:
-                ckp1 = 0
-                
-            if not group['train_mode']:
-                raise Exception("Not in train mode!")
-                
-            for p in group['params']:
-                if p.grad is not None and 'z' not in self.state[p]:
-                    self.state[p]['z'] = torch.clone(p.data)
-                
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-                    
-                g = p.grad
-                if g is None:
-                    continue
-                state = self.state[p]
-                
-                y = p.data
-                update = scale * norm_backend.lmo(g)
-                z = self.state[p]['z']
-                
-                y.lerp_(end=z, weight=ckp1)
-                y.add_(update, alpha=lr*(momentum*(1-ckp1)-1))
-                if unconstrained:
-                    z.sub_(update, alpha=lr)
-                else:
-                    y.add_(z, alpha=lr*(momentum*(1-ckp1)-1))
-                    z.mul_(1-lr).add_(update, alpha=-lr)
-                    
-                    
 class Scion(torch.optim.Optimizer):
     def __init__(self, params, lr=1e-3, momentum=1.0, norm: str='Spectral', norm_kwargs: dict=None, scale=1.0, unconstrained=False):
         if lr < 0.0:
             raise ValueError(f"Invalid learning rate: {lr}")
         if momentum < 0.0:
-            raise ValueError(f"Invalid momentum value: {momentum}")
+            raise ValueError(f"Invalid momentum value: {momentum}")       
+        self.params_vector = []  
+        self.grads_vector = []  
+        self.iter_k = 0           
         defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained)
         super().__init__(params, defaults)
 
-    def step(self):
+    def step(self, step):
+        if master_process and (args.val_loss_every > 0 and (step+1) % args.val_loss_every == 0):
+            self.params_vector = []
+            self.grads_vector = []
+            self.iter_k = 0
+            
         for group in self.param_groups:
             lr = group['lr']
             momentum = group['momentum']
             scale = group['scale']
             unconstrained = group['unconstrained']
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
-            for p in group['params']:
+            for p in group['params']: 
+                if master_process and (step > 0 and args.val_loss_every > 0 and step % args.val_loss_every == 0):
+                    name = None
+                    for param_name, param in model.named_parameters():
+                        if param is p:
+                            name = param_name
+                            break
+            
+                if master_process and (args.val_loss_every > 0 and (step+1) % args.val_loss_every == 0):
+                    self.params_vector.append(p.data.clone())
+                    self.grads_vector.append(p.grad.clone())
+            
                 g = p.grad
                 if g is None:
                     continue
@@ -199,13 +150,30 @@ class Scion(torch.optim.Optimizer):
                     buf = state['momentum_buffer']
                     buf.mul_(1-momentum).add_(g, alpha=momentum)
                     g = buf
+                    
+                if master_process and (step > 0 and args.val_loss_every > 0 and step % args.val_loss_every == 0):
+                    norm_params_diff = norm_backend.calculate_norm(p.data - self.params_vector[self.iter_k])
+                    norm_grad_diff = torch.dot(norm_backend.lmo(p.grad - self.grads_vector[self.iter_k]).flatten().to(torch.float32),  (p.grad - self.grads_vector[self.iter_k]).flatten()) 
+                    norm_grad = torch.dot(norm_backend.lmo(p.grad).flatten().to(torch.float32), p.grad.flatten())
+                    L_est = norm_grad_diff / norm_params_diff
+                    param_size = p.data.size()
+                    if wandb_log: 
+                        wandb.log({
+                            f"L_estimated ({self.iter_k}, {group['norm']}, {param_size}, {name})": L_est,
+                            f"norm_grad ({self.iter_k}, {group['norm']}, {param_size}, {name})": norm_grad, 
+                            "iter": step
+                        })
+                        
+                    print(f'step:{step}/{args.num_iterations} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}')
+                        
+                    self.iter_k += 1
 
                 update = scale * norm_backend.lmo(g)
                 if unconstrained:
                     p.data.add_(update, alpha=-lr)  # Unconstrained Scion
                 else:
                     p.data.mul_(1-lr).add_(update, alpha=-lr) # Scion
-                    
+
 
 # -----------------------------------------------------------------------------
 # PyTorch nn.Module definitions for the GPT-2 model
@@ -431,10 +399,10 @@ class Hyperparameters:
     batch_size : int = 8*64 # batch size, in sequences, across all devices
     device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
-    num_iterations : int = 10000 # number of iterations to run
+    num_iterations : int = 5001 # number of iterations to run
     learning_rate : float = 0.00036
     warmup_iters : int = 0
-    warmdown_iters : int = 2850 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
+    warmdown_iters : int = 0 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule
     weight_decay : float = 0
     # evaluation and logging hyperparams
     val_loss_every : int = 50 # every how many steps to evaluate val loss? 0 for only at the end
@@ -498,44 +466,35 @@ raw_model = model.module # always contains the "raw" unwrapped model
 ctx = torch.amp.autocast(device_type='cuda', dtype=torch.bfloat16)
 
 # init the optimizer(s)
-optim_groups1 = [{
+optim_groups = [{
     'params': raw_model.transformer.h.parameters(), 
         'norm': 'Spectral', 
         'norm_kwargs': {'steps': 5}, 
         'scale': args.scale,
-}]
-
-optim_groups2 = [{
+}, {
     'params': raw_model.lm_head.parameters(), 
     'norm': 'Sign', 
     'norm_kwargs': {}, 
     'scale': args.last_scale,
-}]
-optimizer1 = ScionScheduleFree(optim_groups1, lr=args.learning_rate, momentum=args.momentum, unconstrained=args.unconstrained)
-optimizer2 = Scion(optim_groups2, lr=args.learning_rate, momentum=args.momentum, unconstrained=args.unconstrained)
-optimizers = [optimizer1, optimizer2]
+}
+]
+optimizer1 = Scion(optim_groups, lr=args.learning_rate, momentum=args.momentum, unconstrained=args.unconstrained)
+optimizers = [optimizer1]
 
 # learning rate decay scheduler (linear warmup and warmdown)
-def get_lr_int(it):
-        return 1
-        
-# learning rate decay scheduler (linear warmup and warmdown)
-def get_lr_ext(it):
+def get_lr(it):
     assert it <= args.num_iterations
     # 1) linear warmup for warmup_iters steps
     if it < args.warmup_iters:
         return (it+1) / args.warmup_iters
     # 2) constant lr for a while
-    elif it < args.num_iterations - args.warmdown_iters:
+    elif it <= args.num_iterations - args.warmdown_iters:
         return 1.0
     # 3) linear warmdown
     else:
         decay_ratio = (args.num_iterations - it) / args.warmdown_iters
         return decay_ratio
-
-scheduler1 = torch.optim.lr_scheduler.LambdaLR(optimizer1, get_lr_int)
-scheduler2 = torch.optim.lr_scheduler.LambdaLR(optimizer2, get_lr_ext)
-schedulers = [scheduler1, scheduler2]
+schedulers = [torch.optim.lr_scheduler.LambdaLR(opt, get_lr) for opt in optimizers]
 
 # wandb logging
 config_keys = [k for k, v in vars(args).items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
@@ -587,9 +546,6 @@ for step in range(args.num_iterations + 1):
         training_time_ms += 1000 * (time.time() - t0)
         # run validation batches
         model.eval()
-        for opt in optimizers:
-            if isinstance(opt, ScionScheduleFree):
-                opt.eval()
         val_loader.reset()
         val_loss = 0.0
         for _ in range(val_steps):
@@ -627,9 +583,6 @@ for step in range(args.num_iterations + 1):
 
     # --------------- TRAINING SECTION BEGIN -----------------
     model.train()
-    for opt in optimizers:
-        if isinstance(opt, ScionScheduleFree):
-            opt.train()
     for i in range(1, train_accumulation_steps+1):
         # forward pass
         with ctx:
@@ -644,25 +597,15 @@ for step in range(args.num_iterations + 1):
         else:
             loss.backward() # just sync on the last step
             
-    # wandb logging
-    if master_process and (last_step or (args.val_loss_every > 0 and step % args.val_loss_every == 0)):
-        lr = get_lr_int(step)    
-        if wandb_log:
-            wandb.log({
-                "iter": step,
-                "train/loss": train_loss,
-                "val/loss": val_loss,
-                "lr": lr,
-            })
+    for p in model.parameters():
+        p.grad /= train_accumulation_steps
             
     if last_step:
         break
-        
-    for p in model.parameters():
-        p.grad /= train_accumulation_steps
+  
     # step the optimizers and schedulers
     for opt, sched in zip(optimizers, schedulers):
-        opt.step()
+        opt.step(step=step)
         sched.step()
     # null the gradients
     model.zero_grad(set_to_none=True)
@@ -671,11 +614,11 @@ for step in range(args.num_iterations + 1):
 
     #dist.all_reduce(train_loss, op=dist.ReduceOp.AVG) # all-reducing the training loss would be more correct in terms of logging, but slower
             
-    if master_process:
-        approx_time = training_time_ms + 1000 * (time.time() - t0)
-        print(f"step:{step+1}/{args.num_iterations} train_loss:{train_loss.item():.4f} train_time:{approx_time:.0f}ms step_avg:{approx_time/timed_steps:.2f}ms")
-        with open(logfile, "a") as f:
-            f.write(f"step:{step+1}/{args.num_iterations} train_loss:{train_loss.item():.4f} train_time:{approx_time:.0f}ms step_avg:{approx_time/timed_steps:.2f}ms\n")
+    #if master_process:
+    #    approx_time = training_time_ms + 1000 * (time.time() - t0)
+    #    print(f"step:{step+1}/{args.num_iterations} train_loss:{train_loss.item():.4f} train_time:{approx_time:.0f}ms step_avg:{approx_time/timed_steps:.2f}ms")
+    #    with open(logfile, "a") as f:
+    #        f.write(f"step:{step+1}/{args.num_iterations} train_loss:{train_loss.item():.4f} train_time:{approx_time:.0f}ms step_avg:{approx_time/timed_steps:.2f}ms\n")
 
 if master_process:
     print(f"peak memory consumption: {torch.cuda.max_memory_allocated() // 1024 // 1024} MiB")

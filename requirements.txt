@@ -1,5 +1,0 @@
-numpy
-tqdm
-torch
-huggingface-hub
-datargs

@@ -324,12 +324,11 @@ class Scion(torch.optim.Optimizer):
                     buf = state['momentum_buffer']
                     buf.mul_(1-momentum).add_(g, alpha=momentum)
                     g = buf
-
-                if run != "warmup":    
-                    if wandb_log:
-                        wandb.log({
-                        "epoch": step_epoch
-                        })
+   
+                if wandb_log:
+                    wandb.log({
+                    "epoch": step_epoch
+                    })
 
                 update = scale * norm_backend.lmo(g)
                 if not unconstrained:
@@ -606,9 +605,6 @@ def main(run, model):
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
-    if run == "warmup":
-        # The only purpose of the first run is to warmup the compiled model, so we can use dummy data
-        train_loader.labels = torch.randint(0, 10, size=(len(train_loader.labels),), device=train_loader.labels.device)
     total_train_steps = ceil(8 * len(train_loader))
     whiten_bias_train_steps = ceil(3 * len(train_loader))
     
@@ -719,7 +715,6 @@ if __name__ == "__main__":
     model.compile(mode="max-autotune")
 
     print_columns(logging_columns_list, is_head=True)
-    main("warmup", model)
     accs = torch.tensor([main(run, model) for run in range(1)])
     print("Mean: %.4f    Std: %.4f" % (accs.mean(), accs.std()))
 

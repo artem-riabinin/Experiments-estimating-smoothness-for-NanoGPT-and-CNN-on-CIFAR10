@@ -403,7 +403,7 @@ class Hyperparameters:
     batch_size : int = 8*64 # batch size, in sequences, across all devices
     device_batch_size : int = 32 # batch size, in sequences, per device
     sequence_length : int = 1024 # sequence length, in tokens
-    num_iterations : int = 151 # number of iterations to run
+    num_iterations : int = 101 # number of iterations to run
     learning_rate : float = 0.00036
     warmup_iters : int = 0
     warmdown_iters : int = 0 # number of iterations of linear warmup/warmdown for triangular or trapezoidal schedule

@@ -683,7 +683,7 @@ if __name__ == "__main__":
     model.compile(mode="max-autotune")
 
     print_columns(logging_columns_list, is_head=True)
-    main(model)
+    accs = torch.tensor([main(model)])
 
     log_dir = os.path.join("logs", str(uuid.uuid4()))
     os.makedirs(log_dir, exist_ok=True)

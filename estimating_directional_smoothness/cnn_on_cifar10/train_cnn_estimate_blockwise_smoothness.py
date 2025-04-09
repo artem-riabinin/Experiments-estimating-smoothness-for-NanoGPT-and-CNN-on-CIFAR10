@@ -513,9 +513,9 @@ class CifarNet(nn.Module):
         eigenvectors_scaled = eigenvectors.T.reshape(-1,c,h,w) / torch.sqrt(eigenvalues.view(-1,1,1,1) + eps)
         self.whiten.weight.data[:] = torch.cat((eigenvectors_scaled, -eigenvectors_scaled))
 
-    def forward(self, x, whiten_bias_grad=True):
+    def forward(self, x):
         b = self.whiten.bias
-        x = F.conv2d(x, self.whiten.weight, b if whiten_bias_grad else b.detach())
+        x = F.conv2d(x, self.whiten.weight, b)
         x = self.layers(x)
         x = x.view(len(x), -1)
         return self.head(x) / x.size(-1)
@@ -600,8 +600,8 @@ def evaluate(model, loader, tta_level=0):
 def main(run, model):
 
     batch_size = 2000
-    bias_lr = 0.053 # lr for specific parameters: norm_biases and whiten.bias
-    wd = 2e-6 * batch_size # wd for specific parameters: norm_biases and whiten.bias
+    bias_lr = 0.053 # lr for specific parameters: norm_biases
+    wd = 2e-6 * batch_size # wd for specific parameters: norm_biases
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
@@ -611,9 +611,8 @@ def main(run, model):
     # Create optimizer
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
     norm_biases = [p for n, p in model.named_parameters() if "norm" in n and p.requires_grad]
-    param_configs = [dict(params=[model.whiten.bias], lr=bias_lr, weight_decay=wd/bias_lr),
-                     dict(params=norm_biases,         lr=bias_lr, weight_decay=wd/bias_lr)]
-    remaining_parameters = filter_params
+    param_configs = [dict(params=norm_biases, lr=bias_lr, weight_decay=wd/bias_lr)]
+    remaining_parameters = filter_params + [model.whiten.bias]
     output_layer = [model.head.weight]
     radius = 1.0
     optim_groups = [{
@@ -627,7 +626,7 @@ def main(run, model):
         'norm_kwargs': {'normalized': True},
         'scale': radius*100.0,
     }]
-    optimizer1 = torch.optim.SGD(param_configs, momentum=0.85, nesterov=True, fused=True) # for specific parameters: norm_biases and whiten.bias
+    optimizer1 = torch.optim.SGD(param_configs, momentum=0.85, nesterov=True, fused=True) # for specific parameters: norm_biases
     for group in optimizer1.param_groups:
         group["initial_lr"] = group["lr"]
     optimizer2 = Scion(optim_groups, lr=2**-4, momentum=0.5, unconstrained=True)
@@ -664,12 +663,10 @@ def main(run, model):
         start_timer()
         model.train()
         for inputs, labels in train_loader:
-            outputs = model(inputs, whiten_bias_grad=(step < whiten_bias_train_steps))
+            outputs = model(inputs)
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
             for group in optimizer1.param_groups[:1]:
                 group["lr"] = group["initial_lr"] * (1 - step / whiten_bias_train_steps)
-            for group in optimizer1.param_groups[1:]:
-                group["lr"] = group["initial_lr"] * (1 - step / total_train_steps)
             for i, opt in enumerate(optimizers):
                 if i == 0:
                     opt.step()

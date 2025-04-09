@@ -632,9 +632,11 @@ def main(run, model):
         'scale': radius*100.0,
     }]
     optimizer1 = torch.optim.SGD(param_configs, momentum=0.85, nesterov=True, fused=True) # for specific parameters: norm_biases and whiten.bias
+    for group in optimizer1.param_groups:
+        group["initial_lr"] = group["lr"]
     optimizer2 = Scion(optim_groups, lr=2**-4, momentum=0.5, unconstrained=True)
     optimizer2.init()
-    optimizer = [optimizer1, optimizer2]
+    optimizers = [optimizer1, optimizer2]
 
     # For accurately timing GPU code
     starter = torch.cuda.Event(enable_timing=True)
@@ -668,7 +670,11 @@ def main(run, model):
         for inputs, labels in train_loader:
             outputs = model(inputs, whiten_bias_grad=(step < whiten_bias_train_steps))
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
-            for i, opt in enumerate(optimizer):
+            for group in optimizer1.param_groups[:1]:
+                group["lr"] = group["initial_lr"] * (1 - step / whiten_bias_train_steps)
+            for group in optimizer1.param_groups[1:]:
+                group["lr"] = group["initial_lr"] * (1 - step / total_train_steps)
+            for i, opt in enumerate(optimizers):
                 if i == 0:
                     opt.step()
                 else:
@@ -710,7 +716,7 @@ if __name__ == "__main__":
 
     # We re-use the compiled model between runs to save the non-data-dependent compilation time
     model = CifarNet().cuda().to(memory_format=torch.channels_last)
-    model.compile(mode="max-autotune")
+    model.compile(mode="default")
 
     print_columns(logging_columns_list, is_head=True)
     main("warmup", model)

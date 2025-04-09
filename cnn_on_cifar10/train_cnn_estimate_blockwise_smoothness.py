@@ -16,6 +16,7 @@ from torch import nn
 import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as T
+from torch.optim.lr_scheduler import LambdaLR
 
 import wandb
 
@@ -580,8 +581,8 @@ def main(model):
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
-    total_train_steps = ceil(16 * len(train_loader))
-    iters_per_batch = total_train_steps // len(train_loader)
+    total_train_steps = ceil(8 * len(train_loader))
+    iters_per_batch = len(train_loader) // batch_size
     
     # Create optimizer
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
@@ -603,6 +604,10 @@ def main(model):
     optimizer1 = Scion(optim_groups, lr=2**-4, momentum=0.5, unconstrained=True)
     optimizer1.init()
     optimizers = [optimizer1]
+
+    def linear_decay(step):
+        return max(0.0, 1.0 - step / total_train_steps)
+    scheduler = LambdaLR(optimizer1, lr_lambda=linear_decay)
 
     # For accurately timing GPU code
     starter = torch.cuda.Event(enable_timing=True)
@@ -641,6 +646,7 @@ def main(model):
                 step_epoch = step / iters_per_batch
                 opt.step(step_epoch=step_epoch, iter=iter)
             model.zero_grad(set_to_none=True)
+            scheduler.step()
             iter += 1
             step += 1
             if step >= total_train_steps:

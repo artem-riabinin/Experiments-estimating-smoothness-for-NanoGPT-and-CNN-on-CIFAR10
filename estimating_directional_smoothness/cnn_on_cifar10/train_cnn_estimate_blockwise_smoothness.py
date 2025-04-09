@@ -1,10 +1,3 @@
-"""
-airbench94_muon.py
-Runs in 2.59 seconds on a 400W NVIDIA A100 using torch==2.4.1
-Attains 94.01 mean accuracy (n=200 trials)
-Descends from https://github.com/tysam-code/hlb-CIFAR10/blob/main/main.py
-"""
-
 #############################################
 #                  Setup                    #
 #############################################
@@ -477,10 +470,7 @@ class CifarNet(nn.Module):
         )
         self.head = nn.Linear(widths["block3"], 10, bias=False)
         for mod in self.modules():
-            if isinstance(mod, BatchNorm):
-                mod.float()
-            else:
-                mod.half()
+            mod.float()
 
     def reset(self):
         for m in self.modules():
@@ -684,7 +674,6 @@ if __name__ == "__main__":
     if wandb_log:
         run_wandb = wandb.init(project=wandb_project, name=wandb_run_name)
 
-    # We re-use the compiled model between runs to save the non-data-dependent compilation time
     model = CifarNet().cuda().to(memory_format=torch.channels_last)
     model.compile(mode="max-autotune")
 

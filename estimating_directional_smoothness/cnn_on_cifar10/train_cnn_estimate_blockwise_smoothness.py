@@ -606,7 +606,6 @@ def main(run, model):
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
     total_train_steps = ceil(8 * len(train_loader))
-    whiten_bias_train_steps = ceil(3 * len(train_loader))
     
     # Create optimizer
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
@@ -665,8 +664,8 @@ def main(run, model):
         for inputs, labels in train_loader:
             outputs = model(inputs)
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
-            for group in optimizer1.param_groups[:1]:
-                group["lr"] = group["initial_lr"] * (1 - step / whiten_bias_train_steps)
+            for group in optimizer1.param_groups[0]:
+                group["lr"] = group["initial_lr"] * (1 - step / total_train_steps)
             for i, opt in enumerate(optimizers):
                 if i == 0:
                     opt.step()

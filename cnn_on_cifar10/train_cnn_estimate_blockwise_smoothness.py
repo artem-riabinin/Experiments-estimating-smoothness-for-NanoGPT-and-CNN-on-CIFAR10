@@ -633,6 +633,7 @@ def main(model):
 
         start_timer()
         model.train()
+        iter = 0
         for inputs, labels in train_loader:
             outputs = model(inputs)
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
@@ -640,6 +641,7 @@ def main(model):
                 step_epoch = step / iters_per_batch
                 opt.step(step_epoch=step_epoch, iter=iter)
             model.zero_grad(set_to_none=True)
+            iter += 1
             step += 1
             if step >= total_train_steps:
                 break

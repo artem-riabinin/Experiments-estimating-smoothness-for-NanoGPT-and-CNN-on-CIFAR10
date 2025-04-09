@@ -309,6 +309,9 @@ class Scion(torch.optim.Optimizer):
                         })
                         
                     print(f'step:{step_epoch} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}')
+                    if not os.path.exists(logfile):
+                        with open(logfile, "w") as f:
+                            f.write("Log file created.\n")
                     with open(logfile, "a") as f:
                         f.write(f'step:{step_epoch} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}\n')
                     if wandb_log:
@@ -680,7 +683,6 @@ if __name__ == "__main__":
 
     # wandb logging
     if wandb_log:
-        logfile = 'logs/%s.txt'
         run_wandb = wandb.init(project=wandb_project, name=wandb_run_name)
 
     model = CifarNet().cuda().to(memory_format=torch.channels_last)

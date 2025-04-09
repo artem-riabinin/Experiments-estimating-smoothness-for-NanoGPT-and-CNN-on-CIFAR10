@@ -215,6 +215,14 @@ class Auto(Norm):
         elif g.ndim in [0,1]:
             return BiasRMS().lmo(g)
 
+    def calculate_norm(self, p):
+        if p.ndim in [3,4]:
+            return SpectralConv().calculate_norm(p)
+        elif p.ndim == 2:
+            return Spectral().calculate_norm(p)
+        elif p.ndim in [0,1]:
+            return BiasRMS().calculate_norm(p)
+
     def init(self, w):
         if w.ndim in [3,4]:
             return SpectralConv().init(w)

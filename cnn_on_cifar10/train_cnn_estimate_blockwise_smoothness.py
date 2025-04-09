@@ -599,7 +599,7 @@ def main(model):
         'norm_kwargs': {'normalized': True},
         'scale': radius*100.0,
     }]
-    optimizer1 = Scion(optim_groups, lr=0.0625, momentum=0.5, unconstrained=True)
+    optimizer1 = Scion(optim_groups, lr=0.01, momentum=0.5, unconstrained=True)
     optimizer1.init()
     optimizers = [optimizer1]
 
@@ -643,7 +643,7 @@ def main(model):
             for opt, sched in zip(optimizers, schedulers):
                 step_epoch = step / len(train_loader)
                 opt.step(step_epoch=step_epoch, iter=iter)
-                sched.step()
+                #sched.step()
             model.zero_grad(set_to_none=True)
             iter += 1
             step += 1

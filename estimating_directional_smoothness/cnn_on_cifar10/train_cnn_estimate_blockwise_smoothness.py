@@ -308,7 +308,7 @@ class Scion(torch.optim.Optimizer):
                             "iter": step_epoch
                         })
                         
-                    print(f'step:{step_epoch} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}')
+                    print(f'step:{step_epoch} ({self.iter_k}) L_estimated: {L_est.item():.4f} norm_grad: {norm_grad.item():.4f}')
                         
                     self.iter_k += 1
 

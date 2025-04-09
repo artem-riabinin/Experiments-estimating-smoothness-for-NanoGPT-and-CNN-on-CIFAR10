@@ -599,7 +599,7 @@ def main(model):
         'norm_kwargs': {'normalized': True},
         'scale': radius*100.0,
     }]
-    optimizer1 = Scion(optim_groups, lr=2**-2, momentum=0.5, unconstrained=True)
+    optimizer1 = Scion(optim_groups, lr=0.0625, momentum=0.5, unconstrained=True)
     optimizer1.init()
     optimizers = [optimizer1]
 

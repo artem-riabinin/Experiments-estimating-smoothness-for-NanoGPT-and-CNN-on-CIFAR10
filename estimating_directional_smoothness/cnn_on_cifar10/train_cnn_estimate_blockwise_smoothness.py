@@ -308,9 +308,9 @@ class Scion(torch.optim.Optimizer):
                             "iter": step_epoch
                         })
                         
-                    print(f'step:{step}/{args.num_iterations} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}')
+                    print(f'step:{step_epoch} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}')
                     with open(logfile, "a") as f:
-                        f.write(f'step:{step_epoch}/{args.num_iterations} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}\n')
+                        f.write(f'step:{step_epoch} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}\n')
                     if wandb_log:
                         wandb.save(logfile)
                         

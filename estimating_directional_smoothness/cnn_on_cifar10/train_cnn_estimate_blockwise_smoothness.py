@@ -606,9 +606,9 @@ def main(run, model):
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
-    #if run == "warmup":
+    if run == "warmup":
         # The only purpose of the first run is to warmup the compiled model, so we can use dummy data
-        #train_loader.labels = torch.randint(0, 10, size=(len(train_loader.labels),), device=train_loader.labels.device)
+        train_loader.labels = torch.randint(0, 10, size=(len(train_loader.labels),), device=train_loader.labels.device)
     total_train_steps = ceil(8 * len(train_loader))
     whiten_bias_train_steps = ceil(3 * len(train_loader))
     
@@ -716,7 +716,7 @@ if __name__ == "__main__":
 
     # We re-use the compiled model between runs to save the non-data-dependent compilation time
     model = CifarNet().cuda().to(memory_format=torch.channels_last)
-    model.compile(mode="default")
+    model.compile(mode="max-autotune")
 
     print_columns(logging_columns_list, is_head=True)
     main("warmup", model)

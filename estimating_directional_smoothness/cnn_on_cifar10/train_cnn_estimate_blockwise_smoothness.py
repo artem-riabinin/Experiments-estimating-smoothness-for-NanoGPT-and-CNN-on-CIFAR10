@@ -680,6 +680,7 @@ if __name__ == "__main__":
 
     # wandb logging
     if wandb_log:
+        logfile = 'logs/%s.txt' % run_id
         run_wandb = wandb.init(project=wandb_project, name=wandb_run_name)
 
     model = CifarNet().cuda().to(memory_format=torch.channels_last)

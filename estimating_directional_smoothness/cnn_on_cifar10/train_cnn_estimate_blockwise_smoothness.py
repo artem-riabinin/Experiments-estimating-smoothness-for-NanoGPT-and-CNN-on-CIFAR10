@@ -605,7 +605,7 @@ def main(run, model):
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
-    total_train_steps = ceil(8 * len(train_loader))
+    total_train_steps = ceil(16 * len(train_loader))
     
     # Create optimizer
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
@@ -625,7 +625,7 @@ def main(run, model):
         'norm_kwargs': {'normalized': True},
         'scale': radius*100.0,
     }]
-    optimizer1 = torch.optim.SGD(param_configs, momentum=0.85, nesterov=True, fused=True) # for specific parameters: norm_biases
+    optimizer1 = torch.optim.SGD(param_configs, momentum=0.85, nesterov=True, fused=True) # optmizer for specific parameters: norm_biases
     for group in optimizer1.param_groups:
         group["initial_lr"] = group["lr"]
     optimizer2 = Scion(optim_groups, lr=2**-4, momentum=0.5, unconstrained=True)

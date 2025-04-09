@@ -259,7 +259,7 @@ class Scion(torch.optim.Optimizer):
         defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained, norm=norm, norm_kwargs=norm_kwargs)
         super().__init__(params, defaults)
 
-    def step(self, step_epoch, iter, run):
+    def step(self, step_epoch, iter):
         if (iter+1) % 5 == 0:
             self.params_vector = []
             self.grads_vector = []
@@ -308,8 +308,7 @@ class Scion(torch.optim.Optimizer):
                             "iter": step_epoch
                         })
                         
-                    print(f'step:{step_epoch} ({self.iter_k}) L_estimated: {L_est.item():.4f} norm_grad: {norm_grad.item():.4f}')
-                        
+                    print(f'step:{step_epoch} ({self.iter_k}) L_estimated: {L_est.item():.4f} norm_grad: {norm_grad.item():.4f}')  
                     self.iter_k += 1
 
                 update = scale * norm_backend.lmo(g)
@@ -369,7 +368,6 @@ class CifarLoader:
 
         data = torch.load(data_path, map_location=torch.device("cuda"))
         self.images, self.labels, self.classes = data["images"], data["labels"], data["classes"]
-        # It's faster to load+process uint8 data than to load preprocessed fp16 data
         self.images = (self.images.float() / 255).permute(0, 3, 1, 2).to(memory_format=torch.channels_last)
 
         self.normalize = T.Normalize(CIFAR_MEAN, CIFAR_STD)
@@ -514,7 +512,7 @@ def print_columns(columns_list, is_head=False, is_final_entry=False):
     if is_head or is_final_entry:
         print("-"*len(print_string))
 
-logging_columns_list = ["run   ", "epoch", "train_acc", "val_acc", "tta_val_acc", "time_seconds"]
+logging_columns_list = ["epoch", "train_acc", "val_acc", "tta_val_acc", "time_seconds"]
 def print_training_details(variables, is_final_entry):
     formatted = []
     for col in logging_columns_list:
@@ -576,13 +574,13 @@ def evaluate(model, loader, tta_level=0):
 #                Training                  #
 ############################################
 
-def main(run, model):
+def main(model):
 
     batch_size = 2000
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
-    total_train_steps = ceil(8 * len(train_loader))
+    total_train_steps = ceil(16 * len(train_loader))
     iters_per_batch = total_train_steps // len(train_loader)
     
     # Create optimizer
@@ -635,16 +633,13 @@ def main(run, model):
 
         start_timer()
         model.train()
-        iter = 0
-        step_epoch = epoch
         for inputs, labels in train_loader:
             outputs = model(inputs)
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
             for opt in optimizers:
-                step_epoch += iter / iters_per_batch
-                opt.step(step_epoch=step_epoch, iter=iter, run=run)
+                step_epoch = step / iters_per_batch
+                opt.step(step_epoch=step_epoch, iter=iter)
             model.zero_grad(set_to_none=True)
-            iter += 1
             step += 1
             if step >= total_train_steps:
                 break
@@ -658,7 +653,6 @@ def main(run, model):
         train_acc = (outputs.detach().argmax(1) == labels).float().mean().item()
         val_acc = evaluate(model, test_loader, tta_level=0)
         print_training_details(locals(), is_final_entry=False)
-    run = None # Only print the run number once
 
     ####################
     #  TTA Evaluation  #
@@ -682,8 +676,7 @@ if __name__ == "__main__":
     model.compile(mode="max-autotune")
 
     print_columns(logging_columns_list, is_head=True)
-    accs = torch.tensor([main(run, model) for run in range(1)])
-    print("Mean: %.4f    Std: %.4f" % (accs.mean(), accs.std()))
+    main(model)
 
     log_dir = os.path.join("logs", str(uuid.uuid4()))
     os.makedirs(log_dir, exist_ok=True)

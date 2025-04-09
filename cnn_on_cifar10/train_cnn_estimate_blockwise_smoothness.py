@@ -582,7 +582,6 @@ def main(model):
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
     total_train_steps = ceil(8 * len(train_loader))
-    iters_per_batch = len(train_loader) // batch_size
     
     # Create optimizer
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
@@ -643,7 +642,7 @@ def main(model):
             outputs = model(inputs)
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
             for opt in optimizers:
-                step_epoch = step / iters_per_batch
+                step_epoch = step / len(train_loader)
                 opt.step(step_epoch=step_epoch, iter=iter)
             model.zero_grad(set_to_none=True)
             scheduler.step()

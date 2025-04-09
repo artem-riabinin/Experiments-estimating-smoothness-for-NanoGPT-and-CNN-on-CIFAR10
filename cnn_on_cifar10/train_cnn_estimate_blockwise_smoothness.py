@@ -16,7 +16,6 @@ from torch import nn
 import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as T
-from torch.optim.lr_scheduler import LambdaLR
 
 import wandb
 
@@ -583,7 +582,7 @@ def main(model):
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
     total_train_steps = ceil(8 * len(train_loader))
     
-    # Create optimizer
+    # Create optimizers and schedulers
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
     norm_biases = [p for n, p in model.named_parameters() if "norm" in n and p.requires_grad]
     remaining_parameters = filter_params + [model.whiten.bias] + norm_biases
@@ -606,7 +605,7 @@ def main(model):
 
     def linear_decay(step):
         return max(0.0, 1.0 - step / total_train_steps)
-    scheduler = LambdaLR(optimizer1, lr_lambda=linear_decay)
+    schedulers = [torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda=linear_decay) for opt in optimizers]
 
     # For accurately timing GPU code
     starter = torch.cuda.Event(enable_timing=True)
@@ -641,11 +640,11 @@ def main(model):
         for inputs, labels in train_loader:
             outputs = model(inputs)
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
-            for opt in optimizers:
+            for opt, sched in zip(optimizers, schedulers):
                 step_epoch = step / len(train_loader)
                 opt.step(step_epoch=step_epoch, iter=iter)
+                sched.step()
             model.zero_grad(set_to_none=True)
-            scheduler.step()
             iter += 1
             step += 1
             if step >= total_train_steps:

@@ -664,7 +664,7 @@ def main(run, model):
         for inputs, labels in train_loader:
             outputs = model(inputs)
             F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
-            for group in optimizer1.param_groups[0]:
+            for group in optimizer1.param_groups:
                 group["lr"] = group["initial_lr"] * (1 - step / total_train_steps)
             for i, opt in enumerate(optimizers):
                 if i == 0:

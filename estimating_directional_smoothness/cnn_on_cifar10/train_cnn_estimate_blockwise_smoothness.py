@@ -309,13 +309,6 @@ class Scion(torch.optim.Optimizer):
                         })
                         
                     print(f'step:{step_epoch} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}')
-                    if not os.path.exists(logfile):
-                        with open(logfile, "w") as f:
-                            f.write("Log file created.\n")
-                    with open(logfile, "a") as f:
-                        f.write(f'step:{step_epoch} ({self.iter_k}) L_estimated: {L_est:.4f} norm_grad: {norm_grad:.4f}\n')
-                    if wandb_log:
-                        wandb.save(logfile)
                         
                     self.iter_k += 1
 

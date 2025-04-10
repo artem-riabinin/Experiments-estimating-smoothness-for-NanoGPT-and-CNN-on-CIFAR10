@@ -592,7 +592,7 @@ def main(model):
     learning_rate = 0.05
     optim_groups = [{
         'params': remaining_parameters,
-        'norm': 'Auto', # Picks layerwise norm based on the parameter shape
+        'norm': 'Auto',
         'norm_kwargs': {},
         'scale': radius,
     }, {

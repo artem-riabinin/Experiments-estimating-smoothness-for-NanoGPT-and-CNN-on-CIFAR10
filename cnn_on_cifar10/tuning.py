@@ -302,13 +302,10 @@ class Scion(torch.optim.Optimizer):
                     L_est = norm_grad_diff / norm_params_diff
                     param_size = p.data.size()
                     if wandb_log: 
-                        wandb.log({
-                            f"L_estimated ({self.iter_k}, {group['norm']}, {param_size}, {name})": L_est,
-                            f"norm_grad ({self.iter_k}, {group['norm']}, {param_size}, {name})": norm_grad, 
+                        wandb.log({ 
                             "iter": step_epoch
                         })
-                        
-                    print(f'step:{step_epoch} ({self.iter_k}) L_estimated: {L_est.item():.4f} norm_grad: {norm_grad.item():.4f}')  
+                          
                     self.iter_k += 1
 
                 update = scale * norm_backend.lmo(g)
@@ -574,7 +571,7 @@ def evaluate(model, loader, tta_level=0):
 #                Training                  #
 ############################################
 
-def main(model):
+def main(model, learning_rate, scale_factor):
 
     batch_size = 2000
 
@@ -588,8 +585,6 @@ def main(model):
     remaining_parameters = filter_params + [model.whiten.bias] + norm_biases
     output_layer = [model.head.weight]
     radius = 1.0
-    scale_factor = 100
-    learning_rate = 0.02
     optim_groups = [{
         'params': remaining_parameters,
         'norm': 'Auto', # Picks layerwise norm based on the parameter shape
@@ -684,11 +679,13 @@ if __name__ == "__main__":
     model.compile(mode="max-autotune")
 
     print_columns(logging_columns_list, is_head=True)
-    accs = torch.tensor([main(model)])
 
-    log_dir = os.path.join("logs", str(uuid.uuid4()))
-    os.makedirs(log_dir, exist_ok=True)
-    log_path = os.path.join(log_dir, "log.pt")
-    torch.save(dict(code=code, accs=accs), log_path)
-    print(os.path.abspath(log_path))
+
+    lrs = [0.05, 0.01, 0.005, 0.002, 0.001]          
+    scales = [1.0, 10.0, 20.0, 50.0, 100.0] 
+
+    for lr in lrs:
+        for scale in scales:
+            main(model, learning_rate=lr, scale_factor=scale)
+
     run_wandb.finish()

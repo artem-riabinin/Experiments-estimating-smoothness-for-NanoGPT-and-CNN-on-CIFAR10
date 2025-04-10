@@ -639,7 +639,7 @@ def main(model):
             outputs = model(inputs)
             (F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum")/len(train_loader)).backward()
             if (iter+1) == len(train_loader):
-                for opt, sched in zip(optimizers, schedulers):
+                for opt in optimizers:
                     step_epoch = step / len(train_loader)
                     opt.step(step_epoch=step_epoch, iter=iter)
             model.zero_grad(set_to_none=True)

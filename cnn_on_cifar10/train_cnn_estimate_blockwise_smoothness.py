@@ -580,7 +580,7 @@ def main(model):
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
-    total_train_steps = ceil(50 * len(train_loader))
+    total_train_steps = ceil(8 * len(train_loader))
     
     # Create optimizers and schedulers
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
@@ -589,7 +589,7 @@ def main(model):
     output_layer = [model.head.weight]
     radius = 1.0
     scale_factor = 100
-    learning_rate = 0.001
+    learning_rate = 0.05
     optim_groups = [{
         'params': remaining_parameters,
         'norm': 'Auto', # Picks layerwise norm based on the parameter shape

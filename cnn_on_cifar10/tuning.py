@@ -577,7 +577,7 @@ def main(model, learning_rate, scale_factor):
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
-    total_train_steps = ceil(16 * len(train_loader))
+    total_train_steps = ceil(10 * len(train_loader))
     
     # Create optimizers and schedulers
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
@@ -618,6 +618,8 @@ def main(model, learning_rate, scale_factor):
 
     model.reset()
     step = 0
+
+    print('lr', learning_rate, 'scale', scale_factor)
 
     # Initialize the whitening layer using training images
     start_timer()
@@ -676,7 +678,7 @@ if __name__ == "__main__":
         run_wandb = wandb.init(project=wandb_project, name=wandb_run_name)
 
     model = CifarNet().cuda().to(memory_format=torch.channels_last)
-    model.compile(mode="max-autotune")
+    model.compile(mode="default")
 
     print_columns(logging_columns_list, is_head=True)
 

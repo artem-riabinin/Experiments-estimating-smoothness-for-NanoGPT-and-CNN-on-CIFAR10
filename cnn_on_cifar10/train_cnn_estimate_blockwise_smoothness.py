@@ -645,7 +645,7 @@ def main(model):
             for opt, sched in zip(optimizers, schedulers):
                 step_epoch = step / len(train_loader)
                 opt.step(step_epoch=step_epoch, iter=iter)
-                sched.step()
+                #sched.step()
             model.zero_grad(set_to_none=True)
             iter += 1
             step += 1

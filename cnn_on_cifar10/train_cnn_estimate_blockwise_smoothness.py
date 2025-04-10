@@ -588,8 +588,8 @@ def main(model):
     remaining_parameters = filter_params + [model.whiten.bias] + norm_biases
     output_layer = [model.head.weight]
     radius = 1.0
-    scale_factor = 100
-    learning_rate = 0.001
+    scale_factor = 1
+    learning_rate = 2**-4
     optim_groups = [{
         'params': remaining_parameters,
         'norm': 'Auto', # Picks layerwise norm based on the parameter shape

@@ -260,7 +260,7 @@ class Scion(torch.optim.Optimizer):
         super().__init__(params, defaults)
 
     def step(self, step_epoch, iter):
-        if (iter+1) % 5 == 0:
+        if (iter+1) % 2 == 0:
             self.params_vector = []
             self.grads_vector = []
             self.iter_k = 0
@@ -272,14 +272,14 @@ class Scion(torch.optim.Optimizer):
             unconstrained = group['unconstrained']
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
             for p in group['params']:
-                if iter > 0 and iter % 5 == 0:
+                if iter > 0 and iter % 2 == 0:
                     name = None
                     for param_name, param in model.named_parameters():
                         if param is p:
                             name = param_name
                             break
 
-                if (iter+1) % 5 == 0:
+                if (iter+1) % 2 == 0:
                     self.params_vector.append(p.data.clone())
                     self.grads_vector.append(p.grad.clone())
 
@@ -295,7 +295,7 @@ class Scion(torch.optim.Optimizer):
                     buf.mul_(1-momentum).add_(g, alpha=momentum)
                     g = buf
 
-                if iter > 0 and iter % 5 == 0:
+                if iter > 0 and iter % 2 == 0:
                     norm_params_diff = norm_backend.calculate_norm(p.data - self.params_vector[self.iter_k])
                     norm_grad_diff = torch.dot(norm_backend.lmo(p.grad - self.grads_vector[self.iter_k]).flatten().to(torch.float32),  (p.grad - self.grads_vector[self.iter_k]).flatten()) 
                     norm_grad = torch.dot(norm_backend.lmo(p.grad).flatten().to(torch.float32), p.grad.flatten())
@@ -580,7 +580,7 @@ def main(model):
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
-    total_train_steps = ceil(16 * len(train_loader))
+    total_train_steps = ceil(8 * len(train_loader))
     
     # Create optimizers and schedulers
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
@@ -589,7 +589,7 @@ def main(model):
     output_layer = [model.head.weight]
     radius = 1.0
     scale_factor = 100
-    learning_rate = 1
+    learning_rate = 0.5
     optim_groups = [{
         'params': remaining_parameters,
         'norm': 'Auto',

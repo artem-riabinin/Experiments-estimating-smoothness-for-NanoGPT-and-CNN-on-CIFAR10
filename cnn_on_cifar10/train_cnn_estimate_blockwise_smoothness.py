@@ -597,7 +597,7 @@ def main(model):
         'params': output_layer,
         'norm': 'Sign',
         'norm_kwargs': {'normalized': True},
-        'scale': radius*10.0,
+        'scale': radius*20.0,
     }]
     optimizer1 = Scion(optim_groups, lr=0.05, momentum=0.5, unconstrained=True)
     optimizer1.init()

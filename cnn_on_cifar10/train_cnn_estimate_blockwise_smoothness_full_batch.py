@@ -580,7 +580,7 @@ def main(model):
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
-    total_train_steps = ceil(50 * len(train_loader))
+    total_train_steps = ceil(80 * len(train_loader))
     
     # Create optimizers and schedulers
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
@@ -601,7 +601,7 @@ def main(model):
         'norm_kwargs': {'normalized': True},
         'scale': radius*scale_factor,
     }]
-    optimizer1 = Scion(optim_groups, lr=learning_rate, momentum=0.5, unconstrained=True)
+    optimizer1 = Scion(optim_groups, lr=learning_rate, momentum=1.0, unconstrained=True)
     optimizer1.init()
     optimizers = [optimizer1]
 

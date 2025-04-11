@@ -26,7 +26,7 @@ torch.backends.cudnn.benchmark = True
 # wandb logging
 wandb_log = True 
 wandb_project = 'cnn'
-wandb_run_name = 'cnn_unScion_estimate_blockwise_smoothness'
+wandb_run_name = 'cnn_unScion_estimate_blockwise_smoothness_full_batch'
 #############################################
 
 

@@ -589,7 +589,7 @@ def main(model):
     output_layer = [model.head.weight]
     radius = 1.0
     scale_factor = 100
-    learning_rate = 0.5
+    learning_rate = 0.2
     optim_groups = [{
         'params': remaining_parameters,
         'norm': 'Auto',

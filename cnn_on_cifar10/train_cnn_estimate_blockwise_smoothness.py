@@ -305,7 +305,7 @@ class Scion(torch.optim.Optimizer):
                         wandb.log({
                             f"L_estimated ({self.iter_k}, {group['norm']}, {param_size}, {name})": L_est,
                             f"norm_grad ({self.iter_k}, {group['norm']}, {param_size}, {name})": norm_grad, 
-                            "iter": step_epoch
+                            "epoch": step_epoch
                         })
                         
                     print(f'step:{step_epoch} ({self.iter_k}) L_estimated: {L_est.item():.4f} norm_grad: {norm_grad.item():.4f}')  
@@ -589,7 +589,7 @@ def main(model):
     output_layer = [model.head.weight]
     radius = 1.0
     scale_factor = 100
-    learning_rate = 0.1
+    learning_rate = 0.5
     optim_groups = [{
         'params': remaining_parameters,
         'norm': 'Auto',

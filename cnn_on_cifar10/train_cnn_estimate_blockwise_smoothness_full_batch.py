@@ -259,8 +259,8 @@ class Scion(torch.optim.Optimizer):
         defaults = dict(lr=lr, momentum=momentum, scale=scale, unconstrained=unconstrained, norm=norm, norm_kwargs=norm_kwargs)
         super().__init__(params, defaults)
 
-    def step(self, step_epoch, iter):
-        if (iter+1) % 5 == 0:
+    def step(self, epoch):
+        if (epoch+1) % 2 == 0:
             self.params_vector = []
             self.grads_vector = []
             self.iter_k = 0
@@ -272,14 +272,14 @@ class Scion(torch.optim.Optimizer):
             unconstrained = group['unconstrained']
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
             for p in group['params']:
-                if iter > 0 and iter % 5 == 0:
+                if epoch > 0 and epoch % 2 == 0:
                     name = None
                     for param_name, param in model.named_parameters():
                         if param is p:
                             name = param_name
                             break
 
-                if (iter+1) % 5 == 0:
+                if (epoch+1) % 2 == 0:
                     self.params_vector.append(p.data.clone())
                     self.grads_vector.append(p.grad.clone())
 
@@ -295,17 +295,20 @@ class Scion(torch.optim.Optimizer):
                     buf.mul_(1-momentum).add_(g, alpha=momentum)
                     g = buf
 
-                if iter > 0 and iter % 5 == 0:
+                if epoch > 0 and epoch % 2 == 0:
                     norm_params_diff = norm_backend.calculate_norm(p.data - self.params_vector[self.iter_k])
                     norm_grad_diff = torch.dot(norm_backend.lmo(p.grad - self.grads_vector[self.iter_k]).flatten().to(torch.float32),  (p.grad - self.grads_vector[self.iter_k]).flatten()) 
                     norm_grad = torch.dot(norm_backend.lmo(p.grad).flatten().to(torch.float32), p.grad.flatten())
                     L_est = norm_grad_diff / norm_params_diff
                     param_size = p.data.size()
                     if wandb_log: 
-                        wandb.log({ 
-                            "iter": step_epoch
+                        wandb.log({
+                            f"L_estimated ({self.iter_k}, {group['norm']}, {param_size}, {name})": L_est,
+                            f"norm_grad ({self.iter_k}, {group['norm']}, {param_size}, {name})": norm_grad, 
+                            "epoch": epoch
                         })
-                          
+                        
+                    print(f'step:{epoch} ({self.iter_k}) L_estimated: {L_est.item():.4f} norm_grad: {norm_grad.item():.4f}')  
                     self.iter_k += 1
 
                 update = scale * norm_backend.lmo(g)
@@ -571,13 +574,13 @@ def evaluate(model, loader, tta_level=0):
 #                Training                  #
 ############################################
 
-def main(model, learning_rate, scale_factor):
+def main(model):
 
     batch_size = 2000
 
     test_loader = CifarLoader("cifar10", train=False, batch_size=2000)
     train_loader = CifarLoader("cifar10", train=True, batch_size=batch_size, aug=dict(flip=True, translate=2))
-    total_train_steps = ceil(10 * len(train_loader))
+    total_train_steps = ceil(30 * len(train_loader))
     
     # Create optimizers and schedulers
     filter_params = [p for p in model.parameters() if len(p.shape) == 4 and p.requires_grad]
@@ -585,9 +588,11 @@ def main(model, learning_rate, scale_factor):
     remaining_parameters = filter_params + [model.whiten.bias] + norm_biases
     output_layer = [model.head.weight]
     radius = 1.0
+    scale_factor = 100
+    learning_rate = 0.5
     optim_groups = [{
         'params': remaining_parameters,
-        'norm': 'Auto', # Picks layerwise norm based on the parameter shape
+        'norm': 'Auto',
         'norm_kwargs': {},
         'scale': radius,
     }, {
@@ -619,8 +624,6 @@ def main(model, learning_rate, scale_factor):
     model.reset()
     step = 0
 
-    print('lr', learning_rate, 'scale', scale_factor)
-
     # Initialize the whitening layer using training images
     start_timer()
     train_images = train_loader.normalize(train_loader.images[:5000])
@@ -635,16 +638,14 @@ def main(model, learning_rate, scale_factor):
 
         start_timer()
         model.train()
-        iter = 0
-        for inputs, labels in train_loader:
+        for i, inputs, labels in in enumerate(train_loader):
             outputs = model(inputs)
-            F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum").backward()
-            for opt, sched in zip(optimizers, schedulers):
-                step_epoch = step / len(train_loader)
-                opt.step(step_epoch=step_epoch, iter=iter)
-                #sched.step()
-            model.zero_grad(set_to_none=True)
-            iter += 1
+            (F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum") / len(train_loader)).backward()
+            if i+1 == len(train_loader):
+                for opt, sched in zip(optimizers, schedulers):
+                    opt.step(epoch=epoch)
+                    #sched.step()
+                    model.zero_grad(set_to_none=True)
             step += 1
             if step >= total_train_steps:
                 break
@@ -678,16 +679,14 @@ if __name__ == "__main__":
         run_wandb = wandb.init(project=wandb_project, name=wandb_run_name)
 
     model = CifarNet().cuda().to(memory_format=torch.channels_last)
-    model.compile(mode="default")
+    model.compile(mode="max-autotune")
 
     print_columns(logging_columns_list, is_head=True)
+    accs = torch.tensor([main(model)])
 
-
-    lrs = [0.05, 0.01, 0.005, 0.002, 0.001]          
-    scales = [1.0, 10.0, 20.0, 50.0, 100.0] 
-
-    for lr in lrs:
-        for scale in scales:
-            main(model, learning_rate=lr, scale_factor=scale)
-
+    log_dir = os.path.join("logs", str(uuid.uuid4()))
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, "log.pt")
+    torch.save(dict(code=code, accs=accs), log_path)
+    print(os.path.abspath(log_path))
     run_wandb.finish()

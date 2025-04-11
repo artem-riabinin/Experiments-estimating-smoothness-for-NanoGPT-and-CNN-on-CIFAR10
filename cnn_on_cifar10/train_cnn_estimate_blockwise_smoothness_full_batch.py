@@ -638,7 +638,7 @@ def main(model):
 
         start_timer()
         model.train()
-        for i, inputs, labels in enumerate(train_loader):
+        for i, (inputs, labels) in enumerate(train_loader):
             outputs = model(inputs)
             (F.cross_entropy(outputs, labels, label_smoothing=0.2, reduction="sum") / len(train_loader)).backward()
             if i+1 == len(train_loader):

@@ -260,7 +260,7 @@ class Scion(torch.optim.Optimizer):
         super().__init__(params, defaults)
 
     def step(self, epoch):
-        if (epoch+1) % 2 == 0:
+        if (epoch+1) % 1 == 0:
             self.params_vector = []
             self.grads_vector = []
             self.iter_k = 0
@@ -279,7 +279,7 @@ class Scion(torch.optim.Optimizer):
                             name = param_name
                             break
 
-                if (epoch+1) % 2 == 0:
+                if (epoch+1) % 1 == 0:
                     self.params_vector.append(p.data.clone())
                     self.grads_vector.append(p.grad.clone())
 
@@ -295,7 +295,7 @@ class Scion(torch.optim.Optimizer):
                     buf.mul_(1-momentum).add_(g, alpha=momentum)
                     g = buf
 
-                if epoch > 0 and epoch % 2 == 0:
+                if epoch > 0 and epoch % 1 == 0:
                     norm_params_diff = norm_backend.calculate_norm(p.data - self.params_vector[self.iter_k])
                     norm_grad_diff = torch.dot(norm_backend.lmo(p.grad - self.grads_vector[self.iter_k]).flatten().to(torch.float32),  (p.grad - self.grads_vector[self.iter_k]).flatten()) 
                     norm_grad = torch.dot(norm_backend.lmo(p.grad).flatten().to(torch.float32), p.grad.flatten())

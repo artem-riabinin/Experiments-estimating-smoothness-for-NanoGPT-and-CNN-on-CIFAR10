@@ -467,7 +467,7 @@ optim_groups = [{
 ]
 optimizer1 = Scion(optim_groups, lr=args.learning_rate, momentum=args.momentum, unconstrained=args.unconstrained)
 optimizers = [optimizer1]
-optimizer2 = torch.optim.Adam(raw_model.parameters(), lr=0.0005)
+optimizer2 = torch.optim.AdamW(raw_model.parameters(), lr=args.learning_rate, betas=(0.9, 0.95))
 optimizers_Adam = [optimizer2]
 
 # learning rate decay scheduler (linear warmup and warmdown)
@@ -597,6 +597,7 @@ for step in range(args.num_iterations + 1):
         opt.step(step=step)
         sched.step()
     for opt in optimizers_Adam:
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         opt.step()
     # null the gradients
     model.zero_grad(set_to_none=True)

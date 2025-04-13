@@ -314,6 +314,7 @@ class Scion(torch.optim.Optimizer):
                     self.grads_vector[self.iter_k] = p.grad.clone()
                     self.iter_k += 1
 
+                self.iter_k = 0
                 update = scale * norm_backend.lmo(g)
                 if not unconstrained:
                     p.data.mul_(1-lr)

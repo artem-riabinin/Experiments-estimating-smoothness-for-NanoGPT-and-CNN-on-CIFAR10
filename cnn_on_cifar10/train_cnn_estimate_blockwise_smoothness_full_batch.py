@@ -263,8 +263,8 @@ class Scion(torch.optim.Optimizer):
         if epoch == 0:
             self.params_vector = []
             self.grads_vector = []
-            self.iter_k = 0
 
+        self.iter_k = 0
         for group in self.param_groups:
             lr = group['lr']
             momentum = group['momentum']
@@ -314,7 +314,6 @@ class Scion(torch.optim.Optimizer):
                     self.grads_vector[self.iter_k] = p.grad.clone()
                     self.iter_k += 1
 
-                self.iter_k = 0
                 update = scale * norm_backend.lmo(g)
                 if not unconstrained:
                     p.data.mul_(1-lr)

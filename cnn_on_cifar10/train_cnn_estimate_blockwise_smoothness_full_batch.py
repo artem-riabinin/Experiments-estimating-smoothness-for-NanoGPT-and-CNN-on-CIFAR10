@@ -260,7 +260,7 @@ class Scion(torch.optim.Optimizer):
         super().__init__(params, defaults)
 
     def step(self, epoch):
-        if (epoch+1) % 1 == 0:
+        if epoch == 0:
             self.params_vector = []
             self.grads_vector = []
             self.iter_k = 0
@@ -272,14 +272,14 @@ class Scion(torch.optim.Optimizer):
             unconstrained = group['unconstrained']
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
             for p in group['params']:
-                if epoch > 0 and epoch % 1 == 0:
+                if epoch > 0:
                     name = None
                     for param_name, param in model.named_parameters():
                         if param is p:
                             name = param_name
                             break
 
-                if (epoch+1) % 1 == 0:
+                if epoch == 0:
                     self.params_vector.append(p.data.clone())
                     self.grads_vector.append(p.grad.clone())
 
@@ -295,7 +295,7 @@ class Scion(torch.optim.Optimizer):
                     buf.mul_(1-momentum).add_(g, alpha=momentum)
                     g = buf
 
-                if epoch > 0 and epoch % 1 == 0:
+                if epoch > 0:
                     norm_params_diff = norm_backend.calculate_norm(p.data - self.params_vector[self.iter_k])
                     norm_grad_diff = torch.dot(norm_backend.lmo(p.grad - self.grads_vector[self.iter_k]).flatten().to(torch.float32),  (p.grad - self.grads_vector[self.iter_k]).flatten()) 
                     norm_grad = torch.dot(norm_backend.lmo(p.grad).flatten().to(torch.float32), p.grad.flatten())
@@ -308,7 +308,10 @@ class Scion(torch.optim.Optimizer):
                             "epoch": epoch
                         })
                         
-                    print(f'step:{epoch} ({self.iter_k}) L_estimated: {L_est.item():.4f} norm_grad: {norm_grad.item():.4f}')  
+                    print(f'step:{epoch} ({self.iter_k}) L_estimated: {L_est.item():.4f} norm_grad: {norm_grad.item():.4f}')
+
+                    self.params_vector[self.iter_k] = p.data.clone()
+                    self.grads_vector[self.iter_k] = p.grad.clone()
                     self.iter_k += 1
 
                 update = scale * norm_backend.lmo(g)

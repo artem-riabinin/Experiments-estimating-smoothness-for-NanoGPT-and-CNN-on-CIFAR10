@@ -272,7 +272,7 @@ class Scion(torch.optim.Optimizer):
             unconstrained = group['unconstrained']
             norm_backend = norm_dict[group['norm']](**group['norm_kwargs'])
             for p in group['params']:
-                if epoch > 0 and epoch % 2 == 0:
+                if epoch > 0 and epoch % 1 == 0:
                     name = None
                     for param_name, param in model.named_parameters():
                         if param is p:
